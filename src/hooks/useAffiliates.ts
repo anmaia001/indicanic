@@ -111,35 +111,34 @@ export function useCreateAffiliate() {
     }) => {
       // Buscar token da sessão atual (admin)
       const { data: { session } } = await supabase.auth.getSession();
-      if (!session) throw new Error("Sem sessão ativa — faça login novamente");
+      if (!session?.access_token) throw new Error("Sem sessão ativa — faça login novamente");
 
-      // Chamar Edge Function com Admin API — não afeta sessão atual
-      const { data, error } = await supabase.functions.invoke("create-affiliate", {
-        body: {
-          name: input.name,
-          email: input.email,
-          phone: input.phone ?? null,
-          commissionRate: input.commissionRate,
-          temporaryPassword: input.temporaryPassword,
-        },
-      });
+      // Chamar Edge Function (verify_jwt=false, auth manual dentro da função)
+      const response = await fetch(
+        `${import.meta.env.VITE_SUPABASE_URL}/functions/v1/create-affiliate`,
+        {
+          method: "POST",
+          headers: {
+            "Content-Type": "application/json",
+            "Authorization": `Bearer ${session.access_token}`,
+            "apikey": import.meta.env.VITE_SUPABASE_ANON_KEY,
+          },
+          body: JSON.stringify({
+            name: input.name,
+            email: input.email,
+            phone: input.phone ?? null,
+            commissionRate: input.commissionRate,
+            temporaryPassword: input.temporaryPassword,
+          }),
+        }
+      );
 
-      console.log("[create-affiliate] response:", JSON.stringify({ data, error }));
+      const data = await response.json();
+      console.log("[create-affiliate] status:", response.status, "data:", data);
 
-      // Extrair mensagem real do FunctionsHttpError
-      if (error) {
-        let errorMsg = error.message ?? "Erro na Edge Function";
-        try {
-          // eslint-disable-next-line @typescript-eslint/no-explicit-any
-          const ctx = (error as any).context;
-          if (ctx) {
-            const json = typeof ctx.json === "function" ? await ctx.json() : ctx;
-            if (json?.error) errorMsg = json.error;
-          }
-        } catch { /* ignora */ }
-        throw new Error(errorMsg);
+      if (!response.ok) {
+        throw new Error(data?.error ?? `Erro HTTP ${response.status}`);
       }
-      if (data?.error) throw new Error(data.error);
 
       return data;
     },

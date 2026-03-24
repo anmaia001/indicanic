@@ -5,119 +5,83 @@ const corsHeaders = {
   "Access-Control-Allow-Headers": "authorization, x-client-info, apikey, content-type",
 };
 
+function json(data: unknown, status = 200) {
+  return new Response(JSON.stringify(data), {
+    status,
+    headers: { ...corsHeaders, "Content-Type": "application/json" },
+  });
+}
+
 Deno.serve(async (req) => {
-  if (req.method === "OPTIONS") {
-    return new Response("ok", { headers: corsHeaders });
+  if (req.method === "OPTIONS") return new Response("ok", { headers: corsHeaders });
+
+  const supabaseAdmin = createClient(
+    Deno.env.get("SUPABASE_URL") ?? "",
+    Deno.env.get("SUPABASE_SERVICE_ROLE_KEY") ?? "",
+    { auth: { autoRefreshToken: false, persistSession: false } }
+  );
+
+  // --- 1. Verificar token do chamador ---
+  const authHeader = req.headers.get("Authorization") ?? "";
+  const token = authHeader.replace("Bearer ", "").trim();
+
+  if (!token) return json({ error: "Token ausente no header Authorization" }, 401);
+
+  const { data: { user: caller }, error: authErr } = await supabaseAdmin.auth.getUser(token);
+  if (authErr || !caller) return json({ error: `Token inválido: ${authErr?.message}` }, 401);
+
+  // --- 2. Verificar se é admin ---
+  const { data: profile } = await supabaseAdmin
+    .from("profiles")
+    .select("role")
+    .eq("id", caller.id)
+    .maybeSingle();
+
+  const role = profile?.role ?? caller.user_metadata?.role;
+  if (role !== "admin") {
+    return json({
+      error: `Acesso negado. Seu perfil tem role="${role ?? "indefinido"}". Execute no SQL Editor: UPDATE public.profiles SET role='admin' WHERE email='${caller.email}';`
+    }, 403);
   }
 
+  // --- 3. Ler e validar body ---
+  let body: Record<string, unknown>;
   try {
-    const supabaseAdmin = createClient(
-      Deno.env.get("SUPABASE_URL") ?? "",
-      Deno.env.get("SUPABASE_SERVICE_ROLE_KEY") ?? "",
-      { auth: { autoRefreshToken: false, persistSession: false } }
-    );
-
-    // Verificar autenticação do chamador
-    const authHeader = req.headers.get("Authorization");
-    if (!authHeader) {
-      return new Response(
-        JSON.stringify({ error: "Não autorizado: sem token" }),
-        { status: 401, headers: { ...corsHeaders, "Content-Type": "application/json" } }
-      );
-    }
-
-    const token = authHeader.replace("Bearer ", "");
-    const { data: { user: callerUser }, error: authError } = await supabaseAdmin.auth.getUser(token);
-
-    if (authError || !callerUser) {
-      return new Response(
-        JSON.stringify({ error: `Token inválido: ${authError?.message ?? "usuário não encontrado"}` }),
-        { status: 401, headers: { ...corsHeaders, "Content-Type": "application/json" } }
-      );
-    }
-
-    // Verificar se é admin — tenta perfil no banco, fallback nos metadados
-    const { data: callerProfile } = await supabaseAdmin
-      .from("profiles")
-      .select("role")
-      .eq("id", callerUser.id)
-      .maybeSingle();
-
-    const roleFromMeta = callerUser.user_metadata?.role;
-    const roleFromProfile = callerProfile?.role;
-    const isAdmin = roleFromProfile === "admin" || roleFromMeta === "admin";
-
-    if (!isAdmin) {
-      return new Response(
-        JSON.stringify({
-          error: `Acesso negado. Role no perfil: "${roleFromProfile ?? "sem perfil"}", Role nos metadados: "${roleFromMeta ?? "não definido"}". Execute: UPDATE public.profiles SET role = 'admin' WHERE email = '${callerUser.email}';`
-        }),
-        { status: 403, headers: { ...corsHeaders, "Content-Type": "application/json" } }
-      );
-    }
-
-    // Ler dados do novo afiliado
-    const body = await req.json();
-    const { name, email, phone, commissionRate, temporaryPassword } = body;
-
-    if (!name || !email || !temporaryPassword) {
-      return new Response(
-        JSON.stringify({ error: "Campos obrigatórios ausentes: name, email, temporaryPassword" }),
-        { status: 400, headers: { ...corsHeaders, "Content-Type": "application/json" } }
-      );
-    }
-
-    if (temporaryPassword.length < 6) {
-      return new Response(
-        JSON.stringify({ error: "Senha deve ter pelo menos 6 caracteres" }),
-        { status: 400, headers: { ...corsHeaders, "Content-Type": "application/json" } }
-      );
-    }
-
-    // Criar usuário via Admin API
-    const { data: newUser, error: createError } = await supabaseAdmin.auth.admin.createUser({
-      email,
-      password: temporaryPassword,
-      email_confirm: true,
-      user_metadata: { name, role: "affiliate" },
-    });
-
-    if (createError) {
-      return new Response(
-        JSON.stringify({ error: `Erro ao criar usuário: ${createError.message}` }),
-        { status: 400, headers: { ...corsHeaders, "Content-Type": "application/json" } }
-      );
-    }
-
-    // Aguardar trigger criar o perfil e atualizar dados extras
-    if (newUser.user) {
-      // Pequena pausa para o trigger disparar
-      await new Promise((r) => setTimeout(r, 500));
-
-      const { error: updateError } = await supabaseAdmin
-        .from("profiles")
-        .update({
-          phone: phone ?? null,
-          commission_rate: commissionRate ?? 10,
-        })
-        .eq("id", newUser.user.id);
-
-      if (updateError) {
-        console.error("Aviso: erro ao atualizar perfil:", updateError.message);
-        // Não falha — usuário já foi criado
-      }
-    }
-
-    return new Response(
-      JSON.stringify({ success: true, userId: newUser.user?.id }),
-      { status: 200, headers: { ...corsHeaders, "Content-Type": "application/json" } }
-    );
-
-  } catch (err) {
-    const msg = err instanceof Error ? err.message : String(err);
-    return new Response(
-      JSON.stringify({ error: `Erro interno: ${msg}` }),
-      { status: 500, headers: { ...corsHeaders, "Content-Type": "application/json" } }
-    );
+    body = await req.json();
+  } catch {
+    return json({ error: "Body inválido — envie JSON" }, 400);
   }
+
+  const { name, email, phone, commissionRate, temporaryPassword } = body as {
+    name: string; email: string; phone?: string;
+    commissionRate?: number; temporaryPassword: string;
+  };
+
+  if (!name || !email || !temporaryPassword) {
+    return json({ error: "Campos obrigatórios: name, email, temporaryPassword" }, 400);
+  }
+  if (String(temporaryPassword).length < 6) {
+    return json({ error: "Senha temporária deve ter no mínimo 6 caracteres" }, 400);
+  }
+
+  // --- 4. Criar usuário ---
+  const { data: created, error: createErr } = await supabaseAdmin.auth.admin.createUser({
+    email: String(email),
+    password: String(temporaryPassword),
+    email_confirm: true,
+    user_metadata: { name, role: "affiliate" },
+  });
+
+  if (createErr) return json({ error: `Erro ao criar usuário: ${createErr.message}` }, 400);
+
+  // --- 5. Atualizar perfil com phone e commission_rate ---
+  if (created.user) {
+    await new Promise((r) => setTimeout(r, 600)); // aguarda trigger criar profile
+    await supabaseAdmin
+      .from("profiles")
+      .update({ phone: phone ?? null, commission_rate: Number(commissionRate ?? 10) })
+      .eq("id", created.user.id);
+  }
+
+  return json({ success: true, userId: created.user?.id });
 });
