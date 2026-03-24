@@ -1,8 +1,8 @@
 import { useState } from "react";
 import { motion } from "framer-motion";
 import {
-  UserPlus, Search, CheckCircle, XCircle, Edit,
-  Percent, Phone, Mail, TrendingUp, DollarSign, Loader2,
+  UserPlus, Search, CheckCircle, Edit,
+  Percent, Phone, Mail, TrendingUp, DollarSign, Loader2, AlertCircle,
 } from "lucide-react";
 import { Layout } from "@/components/Layout";
 import { Card, CardContent } from "@/components/ui/card";
@@ -29,6 +29,7 @@ export default function AdminAffiliates() {
   const [selected, setSelected] = useState<User | null>(null);
   const [editRate, setEditRate] = useState(10);
   const [showAddModal, setShowAddModal] = useState(false);
+  const [addError, setAddError] = useState("");
   const [newAffiliate, setNewAffiliate] = useState({
     name: "", email: "", phone: "", commissionRate: 10, temporaryPassword: "",
   });
@@ -50,19 +51,17 @@ export default function AdminAffiliates() {
 
   const handleAdd = async () => {
     if (!newAffiliate.name || !newAffiliate.email || !newAffiliate.temporaryPassword) return;
+    setAddError("");
     try {
       await createAffiliate.mutateAsync(newAffiliate);
       setShowAddModal(false);
+      setAddError("");
       setNewAffiliate({ name: "", email: "", phone: "", commissionRate: 10, temporaryPassword: "" });
       toast({ title: "Afiliado cadastrado!", description: `${newAffiliate.name} recebeu acesso por e-mail.` });
     } catch (err: unknown) {
       const msg = err instanceof Error ? err.message : String(err);
       console.error("[CreateAffiliate] erro:", msg);
-      toast({
-        title: "Erro ao cadastrar",
-        description: msg || "Verifique os dados e tente novamente.",
-        variant: "destructive",
-      });
+      setAddError(msg || "Erro desconhecido. Tente novamente.");
     }
   };
 
@@ -164,12 +163,18 @@ export default function AdminAffiliates() {
       </div>
 
       {/* Add affiliate modal */}
-      <Dialog open={showAddModal} onOpenChange={setShowAddModal}>
+      <Dialog open={showAddModal} onOpenChange={(v) => { setShowAddModal(v); if (!v) setAddError(""); }}>
         <DialogContent className="max-w-md dark">
           <DialogHeader>
             <DialogTitle className="flex items-center gap-2"><UserPlus size={18} className="text-primary" /> Novo Afiliado</DialogTitle>
           </DialogHeader>
           <div className="space-y-3.5">
+            {addError && (
+              <div className="flex items-start gap-2 text-sm text-destructive bg-destructive/10 border border-destructive/20 rounded-lg p-3">
+                <AlertCircle size={15} className="mt-0.5 shrink-0" />
+                <span>{addError}</span>
+              </div>
+            )}
             <div className="space-y-1.5">
               <Label>Nome completo *</Label>
               <Input value={newAffiliate.name} onChange={(e) => setNewAffiliate({ ...newAffiliate, name: e.target.value })} placeholder="Nome do afiliado" />

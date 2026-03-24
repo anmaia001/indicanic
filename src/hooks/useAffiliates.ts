@@ -111,7 +111,7 @@ export function useCreateAffiliate() {
     }) => {
       // Buscar token da sessão atual (admin)
       const { data: { session } } = await supabase.auth.getSession();
-      if (!session) throw new Error("Sem sessão ativa");
+      if (!session) throw new Error("Sem sessão ativa — faça login novamente");
 
       // Chamar Edge Function com Admin API — não afeta sessão atual
       const { data, error } = await supabase.functions.invoke("create-affiliate", {
@@ -124,9 +124,21 @@ export function useCreateAffiliate() {
         },
       });
 
-      console.log("[create-affiliate] response:", { data, error });
+      console.log("[create-affiliate] response:", JSON.stringify({ data, error }));
 
-      if (error) throw new Error(error.message ?? "Erro na Edge Function");
+      // Extrair mensagem real do FunctionsHttpError
+      if (error) {
+        let errorMsg = error.message ?? "Erro na Edge Function";
+        try {
+          // eslint-disable-next-line @typescript-eslint/no-explicit-any
+          const ctx = (error as any).context;
+          if (ctx) {
+            const json = typeof ctx.json === "function" ? await ctx.json() : ctx;
+            if (json?.error) errorMsg = json.error;
+          }
+        } catch { /* ignora */ }
+        throw new Error(errorMsg);
+      }
       if (data?.error) throw new Error(data.error);
 
       return data;
