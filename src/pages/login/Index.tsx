@@ -21,20 +21,15 @@ export default function LoginPage() {
     setError("");
     const ok = await login(email, password);
     if (ok) {
-      const { user } = useAuth.getState();
-      if (user?.role === "admin") {
+      const state = useAuth.getState();
+      if (state.user?.role === "admin") {
         navigate(ROUTE_PATHS.ADMIN_DASHBOARD);
       } else {
         navigate(ROUTE_PATHS.AFFILIATE_DASHBOARD);
       }
     } else {
-      setError("E-mail ou senha incorretos. Tente novamente.");
+      setError("E-mail ou senha incorretos. Verifique as credenciais.");
     }
-  };
-
-  const demoAccess = (emailVal: string, passVal: string) => {
-    setEmail(emailVal);
-    setPassword(passVal);
   };
 
   return (
@@ -180,29 +175,11 @@ export default function LoginPage() {
             </Button>
           </form>
 
-          {/* Demo access */}
+          {/* Info */}
           <div className="mt-8 border-t border-border pt-6">
-            <p className="text-xs text-muted-foreground text-center mb-3">
-              🔑 Acesso de demonstração
+            <p className="text-xs text-muted-foreground text-center">
+              Acesso exclusivo para afiliados cadastrados.<br />Entre em contato com o administrador para obter suas credenciais.
             </p>
-            <div className="grid grid-cols-2 gap-2">
-              <Button
-                variant="outline"
-                size="sm"
-                className="text-xs"
-                onClick={() => demoAccess("admin@indicanic.com.br", "admin123")}
-              >
-                👑 Admin
-              </Button>
-              <Button
-                variant="outline"
-                size="sm"
-                className="text-xs"
-                onClick={() => demoAccess("carlos@email.com", "carlos123")}
-              >
-                👤 Afiliado
-              </Button>
-            </div>
           </div>
         </motion.div>
       </div>

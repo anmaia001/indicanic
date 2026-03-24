@@ -1,49 +1,101 @@
 import { create } from "zustand";
 import type { User } from "@/lib/index";
-import {
-  MOCK_ADMIN,
-  MOCK_AFFILIATES,
-} from "@/data/index";
+import { supabase } from "@/integrations/supabase/client";
 
 interface AuthState {
   user: User | null;
   isLoading: boolean;
+  initialized: boolean;
   login: (email: string, password: string) => Promise<boolean>;
   logout: () => void;
+  initialize: () => Promise<void>;
 }
 
-// Demo credentials
-const DEMO_CREDENTIALS: Record<string, { password: string; userId: string }> = {
-  "admin@indicanic.com.br": { password: "admin123", userId: "admin-001" },
-  "carlos@email.com": { password: "carlos123", userId: "aff-001" },
-  "ana@email.com": { password: "ana123", userId: "aff-002" },
-  "roberto@email.com": { password: "roberto123", userId: "aff-003" },
-  "fernanda@email.com": { password: "fernanda123", userId: "aff-004" },
-};
+async function fetchProfile(userId: string): Promise<User | null> {
+  const { data, error } = await supabase
+    .from("profiles")
+    .select("*")
+    .eq("id", userId)
+    .single();
 
-function findUser(userId: string): User | null {
-  if (userId === "admin-001") return MOCK_ADMIN;
-  return MOCK_AFFILIATES.find((a) => a.id === userId) ?? null;
+  if (error || !data) return null;
+
+  return {
+    id: data.id,
+    name: data.name,
+    email: data.email,
+    role: data.role as "affiliate" | "admin",
+    phone: data.phone ?? undefined,
+    cpf: data.cpf ?? undefined,
+    pixKey: data.pix_key ?? undefined,
+    commissionRate: Number(data.commission_rate),
+    totalCommissions: 0,
+    pendingCommissions: 0,
+    totalIndications: 0,
+    createdAt: data.created_at,
+    isActive: data.is_active,
+  };
 }
 
-export const useAuth = create<AuthState>((set) => ({
+export const useAuth = create<AuthState>((set, get) => ({
   user: null,
   isLoading: false,
+  initialized: false,
+
+  initialize: async () => {
+    if (get().initialized) return;
+    set({ isLoading: true });
+
+    // Verificar sessão existente
+    const { data: { session } } = await supabase.auth.getSession();
+    if (session?.user) {
+      const profile = await fetchProfile(session.user.id);
+      set({ user: profile, isLoading: false, initialized: true });
+    } else {
+      set({ isLoading: false, initialized: true });
+    }
+
+    // Ouvir mudanças de autenticação
+    supabase.auth.onAuthStateChange(async (event, session) => {
+      if (event === "SIGNED_IN" && session?.user) {
+        const profile = await fetchProfile(session.user.id);
+        set({ user: profile });
+      } else if (event === "SIGNED_OUT") {
+        set({ user: null });
+      }
+    });
+  },
 
   login: async (email: string, password: string) => {
     set({ isLoading: true });
-    await new Promise((r) => setTimeout(r, 800)); // simulate API
-    const cred = DEMO_CREDENTIALS[email.toLowerCase()];
-    if (cred && cred.password === password) {
-      const user = findUser(cred.userId);
-      if (user) {
-        set({ user, isLoading: false });
-        return true;
+    try {
+      const { data, error } = await supabase.auth.signInWithPassword({
+        email: email.toLowerCase().trim(),
+        password,
+      });
+
+      if (error || !data.user) {
+        set({ isLoading: false });
+        return false;
       }
+
+      const profile = await fetchProfile(data.user.id);
+      if (!profile) {
+        await supabase.auth.signOut();
+        set({ isLoading: false });
+        return false;
+      }
+
+      set({ user: profile, isLoading: false });
+      return true;
+    } catch {
+      set({ isLoading: false });
+      return false;
     }
-    set({ isLoading: false });
-    return false;
   },
 
-  logout: () => set({ user: null }),
+  logout: async () => {
+    await supabase.auth.signOut();
+    set({ user: null });
+  },
 }));

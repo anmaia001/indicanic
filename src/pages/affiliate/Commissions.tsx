@@ -5,6 +5,7 @@ import {
   Clock,
   TrendingUp,
   Download,
+  Loader2,
 } from "lucide-react";
 import { Layout } from "@/components/Layout";
 import { StatCard } from "@/components/Stats";
@@ -12,7 +13,7 @@ import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { useAuth } from "@/hooks/useAuth";
-import { MOCK_COMMISSIONS } from "@/data/index";
+import { useCommissions } from "@/hooks/useCommissions";
 import { formatCurrency, formatDate } from "@/lib/index";
 import { useToast } from "@/hooks/use-toast";
 
@@ -25,20 +26,19 @@ const STATUS_COMMISSION = {
 export default function AffiliateCommissions() {
   const { user } = useAuth();
   const { toast } = useToast();
-  const myCommissions = MOCK_COMMISSIONS.filter((c) => c.affiliateId === user?.id);
+  const { data: commissions = [], isLoading } = useCommissions();
 
-  const totalPaid = myCommissions
+  const totalPaid = commissions
     .filter((c) => c.status === "paid")
     .reduce((s, c) => s + c.value, 0);
-  const totalPending = myCommissions
+  const totalPending = commissions
     .filter((c) => c.status !== "paid")
     .reduce((s, c) => s + c.value, 0);
-  const totalCount = myCommissions.length;
 
   const handleExport = () => {
     const rows = [
-      ["Mês Ref.", "Cliente", "Valor", "Status", "Forma de Pagamento", "Data de Pagamento"],
-      ...myCommissions.map((c) => [
+      ["Mês Ref.", "Cliente", "Valor", "Status", "Forma Pagamento", "Data Pagamento"],
+      ...commissions.map((c) => [
         c.referenceMonth,
         c.clientName,
         c.value.toString(),
@@ -48,7 +48,7 @@ export default function AffiliateCommissions() {
       ]),
     ];
     const csv = rows.map((r) => r.join(";")).join("\n");
-    const blob = new Blob([csv], { type: "text/csv;charset=utf-8;" });
+    const blob = new Blob(["\uFEFF" + csv], { type: "text/csv;charset=utf-8;" });
     const url = URL.createObjectURL(blob);
     const a = document.createElement("a");
     a.href = url;
@@ -57,6 +57,16 @@ export default function AffiliateCommissions() {
     URL.revokeObjectURL(url);
     toast({ title: "Relatório exportado!", description: "Arquivo CSV baixado." });
   };
+
+  if (isLoading) {
+    return (
+      <Layout>
+        <div className="flex items-center justify-center h-64">
+          <Loader2 size={32} className="animate-spin text-primary" />
+        </div>
+      </Layout>
+    );
+  }
 
   return (
     <Layout>
@@ -68,36 +78,19 @@ export default function AffiliateCommissions() {
               Taxa atual: <span className="text-primary font-medium">{user?.commissionRate}%</span>
             </p>
           </div>
-          <Button variant="outline" size="sm" onClick={handleExport}>
+          <Button variant="outline" size="sm" onClick={handleExport} disabled={commissions.length === 0}>
             <Download size={15} className="mr-1.5" /> Exportar CSV
           </Button>
         </div>
 
         {/* Stats */}
         <div className="grid grid-cols-3 gap-3">
-          <StatCard
-            title="Total Comissões"
-            value={totalCount}
-            icon={TrendingUp}
-            color="primary"
-          />
-          <StatCard
-            title="A Receber"
-            value={totalPending}
-            icon={Clock}
-            color="warning"
-            isCurrency
-          />
-          <StatCard
-            title="Já Recebido"
-            value={totalPaid}
-            icon={CheckCircle}
-            color="success"
-            isCurrency
-          />
+          <StatCard title="Total Comissões" value={commissions.length} icon={TrendingUp} color="primary" />
+          <StatCard title="A Receber" value={totalPending} icon={Clock} color="warning" isCurrency />
+          <StatCard title="Já Recebido" value={totalPaid} icon={CheckCircle} color="success" isCurrency />
         </div>
 
-        {/* Commission table */}
+        {/* Table */}
         <Card className="border-border">
           <CardHeader className="pb-3">
             <CardTitle className="text-sm font-medium flex items-center gap-2">
@@ -106,9 +99,9 @@ export default function AffiliateCommissions() {
             </CardTitle>
           </CardHeader>
           <CardContent>
-            {myCommissions.length === 0 ? (
+            {commissions.length === 0 ? (
               <p className="text-center text-muted-foreground py-12 text-sm">
-                Nenhuma comissão registrada.
+                Nenhuma comissão registrada ainda. As comissões aparecem automaticamente quando suas indicações entram em mensalidade ativa.
               </p>
             ) : (
               <div className="overflow-x-auto">
@@ -124,7 +117,7 @@ export default function AffiliateCommissions() {
                     </tr>
                   </thead>
                   <tbody>
-                    {myCommissions.map((commission) => {
+                    {commissions.map((commission) => {
                       const sc = STATUS_COMMISSION[commission.status];
                       return (
                         <motion.tr
@@ -133,20 +126,11 @@ export default function AffiliateCommissions() {
                           initial={{ opacity: 0 }}
                           animate={{ opacity: 1 }}
                         >
-                          <td className="py-3 px-2 font-mono text-xs text-muted-foreground">
-                            {commission.referenceMonth}
-                          </td>
-                          <td className="py-3 px-2 font-medium text-foreground">
-                            {commission.clientName}
-                          </td>
-                          <td className="py-3 px-2 text-right font-bold text-emerald-400">
-                            {formatCurrency(commission.value)}
-                          </td>
+                          <td className="py-3 px-2 font-mono text-xs text-muted-foreground">{commission.referenceMonth}</td>
+                          <td className="py-3 px-2 font-medium text-foreground">{commission.clientName}</td>
+                          <td className="py-3 px-2 text-right font-bold text-emerald-400">{formatCurrency(commission.value)}</td>
                           <td className="py-3 px-2 text-center">
-                            <Badge
-                              variant="outline"
-                              className={`text-xs ${sc.color} ${sc.bg} border-current/30`}
-                            >
+                            <Badge variant="outline" className={`text-xs ${sc.color} ${sc.bg} border-current/30`}>
                               {sc.label}
                             </Badge>
                           </td>

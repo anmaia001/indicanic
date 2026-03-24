@@ -1,26 +1,35 @@
 import { useState } from "react";
 import { Layout } from "@/components/Layout";
 import { IndicationList } from "@/components/IndicationList";
+import { useIndications, useUpdateIndicationStatus } from "@/hooks/useIndications";
 import type { IndicationStatus } from "@/lib/index";
-import { MOCK_INDICATIONS } from "@/data/index";
 import { useToast } from "@/hooks/use-toast";
+import { Loader2 } from "lucide-react";
 
 export default function AdminIndications() {
-  const [indications, setIndications] = useState(MOCK_INDICATIONS);
+  const { data: indications = [], isLoading } = useIndications();
+  const updateStatus = useUpdateIndicationStatus();
   const { toast } = useToast();
 
-  const handleStatusChange = (id: string, status: IndicationStatus) => {
-    setIndications((prev) =>
-      prev.map((ind) =>
-        ind.id === id ? { ...ind, status, updatedAt: new Date().toISOString() } : ind
-      )
-    );
-    const ind = indications.find((i) => i.id === id);
-    toast({
-      title: "Status atualizado!",
-      description: `${ind?.clientName} movido para nova etapa.`,
-    });
+  const handleStatusChange = async (id: string, status: IndicationStatus) => {
+    try {
+      await updateStatus.mutateAsync({ id, status });
+      const ind = indications.find((i) => i.id === id);
+      toast({ title: "Status atualizado!", description: `${ind?.clientName} movido para nova etapa.` });
+    } catch {
+      toast({ title: "Erro ao atualizar", description: "Tente novamente.", variant: "destructive" });
+    }
   };
+
+  if (isLoading) {
+    return (
+      <Layout>
+        <div className="flex items-center justify-center h-64">
+          <Loader2 size={32} className="animate-spin text-primary" />
+        </div>
+      </Layout>
+    );
+  }
 
   return (
     <Layout>

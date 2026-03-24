@@ -472,7 +472,7 @@ interface IndicationListProps {
   indications: Indication[];
   showAffiliate?: boolean;
   onStatusChange?: (id: string, status: IndicationStatus) => void;
-  onAdd?: () => void;
+  onAdd?: (data: Partial<Indication>) => Promise<void> | void;
   commissionRate?: number;
   affiliateId?: string;
 }
@@ -502,11 +502,15 @@ export function IndicationList({
     return matchSearch && matchStatus && matchService;
   });
 
-  const handleAdd = (data: Partial<Indication>) => {
-    toast({
-      title: "Indicação cadastrada!",
-      description: `${data.clientName} foi adicionado com sucesso.`,
-    });
+  const handleAdd = async (data: Partial<Indication>) => {
+    if (onAdd) {
+      await onAdd(data);
+    } else {
+      toast({
+        title: "Indicação cadastrada!",
+        description: `${data.clientName} foi adicionado com sucesso.`,
+      });
+    }
   };
 
   return (
