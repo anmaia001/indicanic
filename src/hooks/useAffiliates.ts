@@ -95,7 +95,7 @@ export function useAffiliates() {
 }
 
 // ============================================================
-// MUTATION: criar afiliado (admin cria user no Supabase Auth)
+// MUTATION: criar afiliado via Edge Function (não desloga admin)
 // ============================================================
 
 export function useCreateAffiliate() {
@@ -109,33 +109,25 @@ export function useCreateAffiliate() {
       commissionRate: number;
       temporaryPassword: string;
     }) => {
-      // Criar usuário via Supabase Auth (signup)
-      const { data, error } = await supabase.auth.signUp({
-        email: input.email,
-        password: input.temporaryPassword,
-        options: {
-          data: {
-            name: input.name,
-            role: "affiliate",
-          },
+      // Buscar token da sessão atual (admin)
+      const { data: { session } } = await supabase.auth.getSession();
+      if (!session) throw new Error("Sem sessão ativa");
+
+      // Chamar Edge Function com Admin API — não afeta sessão atual
+      const { data, error } = await supabase.functions.invoke("create-affiliate", {
+        body: {
+          name: input.name,
+          email: input.email,
+          phone: input.phone ?? null,
+          commissionRate: input.commissionRate,
+          temporaryPassword: input.temporaryPassword,
         },
       });
 
-      if (error) throw error;
-      if (!data.user) throw new Error("Falha ao criar usuário");
+      if (error) throw new Error(error.message ?? "Erro ao cadastrar afiliado");
+      if (data?.error) throw new Error(data.error);
 
-      // Atualizar dados extras no profile
-      const { error: profileError } = await supabase
-        .from("profiles")
-        .update({
-          phone: input.phone ?? null,
-          commission_rate: input.commissionRate,
-        })
-        .eq("id", data.user.id);
-
-      if (profileError) throw profileError;
-
-      return data.user;
+      return data;
     },
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ["affiliates"] });
