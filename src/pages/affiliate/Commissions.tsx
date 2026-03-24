@@ -36,26 +36,48 @@ export default function AffiliateCommissions() {
     .reduce((s, c) => s + c.value, 0);
 
   const handleExport = () => {
+    if (commissions.length === 0) {
+      toast({
+        title: "Sem dados para exportar",
+        description: "Nenhuma comissão registrada ainda.",
+        variant: "destructive",
+      });
+      return;
+    }
+
     const rows = [
       ["Mês Ref.", "Cliente", "Valor", "Status", "Forma Pagamento", "Data Pagamento"],
       ...commissions.map((c) => [
         c.referenceMonth,
         c.clientName,
-        c.value.toString(),
+        `R$ ${c.value.toFixed(2).replace(".", ",")}`,
         STATUS_COMMISSION[c.status].label,
         c.paymentMethod ?? "-",
         c.paidAt ? formatDate(c.paidAt) : "-",
       ]),
     ];
-    const csv = rows.map((r) => r.join(";")).join("\n");
-    const blob = new Blob(["\uFEFF" + csv], { type: "text/csv;charset=utf-8;" });
+
+    const csv = "\uFEFF" + rows.map((r) =>
+      r.map((cell) => `"${String(cell).replace(/"/g, '""')}"`).join(";")
+    ).join("\r\n");
+
+    const blob = new Blob([csv], { type: "text/csv;charset=utf-8;" });
     const url = URL.createObjectURL(blob);
     const a = document.createElement("a");
+    a.style.display = "none";
     a.href = url;
-    a.download = "minhas_comissoes.csv";
+    a.download = `minhas_comissoes_${new Date().toISOString().slice(0, 10)}.csv`;
+    document.body.appendChild(a);
     a.click();
-    URL.revokeObjectURL(url);
-    toast({ title: "Relatório exportado!", description: "Arquivo CSV baixado." });
+    setTimeout(() => {
+      document.body.removeChild(a);
+      URL.revokeObjectURL(url);
+    }, 200);
+
+    toast({
+      title: "Download iniciado!",
+      description: `${commissions.length} comissões exportadas.`,
+    });
   };
 
   if (isLoading) {

@@ -40,6 +40,17 @@ export default function AdminReports() {
     : 0;
 
   const exportCSV = (type: "indications" | "commissions") => {
+    const source = type === "indications" ? filtered : filteredComm;
+
+    if (source.length === 0) {
+      toast({
+        title: "Sem dados para exportar",
+        description: "Não há registros no filtro selecionado.",
+        variant: "destructive",
+      });
+      return;
+    }
+
     let rows: string[][];
     let filename: string;
 
@@ -47,33 +58,58 @@ export default function AdminReports() {
       rows = [
         ["ID", "Cliente", "Telefone", "Afiliado", "Serviço", "Status", "Valor Contrato", "Comissão", "Data"],
         ...filtered.map((i) => [
-          i.id, i.clientName, i.clientPhone, i.affiliateName,
-          SERVICE_LABELS[i.serviceType], STATUS_CONFIG[i.status].label,
-          i.contractValue?.toString() ?? "", i.commissionValue?.toString() ?? "",
+          i.id,
+          i.clientName,
+          i.clientPhone,
+          i.affiliateName,
+          SERVICE_LABELS[i.serviceType],
+          STATUS_CONFIG[i.status].label,
+          i.contractValue != null ? `R$ ${i.contractValue.toFixed(2).replace(".", ",")}` : "",
+          i.commissionValue != null ? `R$ ${i.commissionValue.toFixed(2).replace(".", ",")}` : "",
           formatDate(i.createdAt),
         ]),
       ];
-      filename = "indicacoes_relatorio.csv";
+      filename = `indicacoes_${new Date().toISOString().slice(0, 10)}.csv`;
     } else {
       rows = [
         ["ID", "Afiliado", "Cliente", "Valor", "Status", "Mês Ref.", "Data Pagamento"],
         ...filteredComm.map((c) => [
-          c.id, c.affiliateName, c.clientName, c.value.toString(),
-          c.status, c.referenceMonth, c.paidAt ? formatDate(c.paidAt) : "",
+          c.id,
+          c.affiliateName,
+          c.clientName,
+          `R$ ${c.value.toFixed(2).replace(".", ",")}`,
+          c.status === "paid" ? "Pago" : c.status === "approved" ? "Aprovado" : "Pendente",
+          c.referenceMonth,
+          c.paidAt ? formatDate(c.paidAt) : "",
         ]),
       ];
-      filename = "comissoes_relatorio.csv";
+      filename = `comissoes_${new Date().toISOString().slice(0, 10)}.csv`;
     }
 
-    const csv = "\uFEFF" + rows.map((r) => r.join(";")).join("\n");
+    // Montar CSV com BOM para Excel reconhecer acentos
+    const csv = "\uFEFF" + rows.map((r) =>
+      r.map((cell) => `"${String(cell).replace(/"/g, '""')}"`).join(";")
+    ).join("\r\n");
+
+    // Criar link no DOM e disparar download
     const blob = new Blob([csv], { type: "text/csv;charset=utf-8;" });
     const url = URL.createObjectURL(blob);
     const a = document.createElement("a");
+    a.style.display = "none";
     a.href = url;
     a.download = filename;
+    document.body.appendChild(a);
     a.click();
-    URL.revokeObjectURL(url);
-    toast({ title: "Relatório exportado!", description: `${filename} baixado.` });
+    // Limpar após breve delay para garantir que o download iniciou
+    setTimeout(() => {
+      document.body.removeChild(a);
+      URL.revokeObjectURL(url);
+    }, 200);
+
+    toast({
+      title: "Download iniciado!",
+      description: `${filename} (${source.length} registros)`,
+    });
   };
 
   if (isLoading) {
