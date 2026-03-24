@@ -124,7 +124,9 @@ export function useCreateAffiliate() {
         },
       });
 
-      if (error) throw new Error(error.message ?? "Erro ao cadastrar afiliado");
+      console.log("[create-affiliate] response:", { data, error });
+
+      if (error) throw new Error(error.message ?? "Erro na Edge Function");
       if (data?.error) throw new Error(data.error);
 
       return data;

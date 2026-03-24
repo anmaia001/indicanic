@@ -55,8 +55,14 @@ export default function AdminAffiliates() {
       setShowAddModal(false);
       setNewAffiliate({ name: "", email: "", phone: "", commissionRate: 10, temporaryPassword: "" });
       toast({ title: "Afiliado cadastrado!", description: `${newAffiliate.name} recebeu acesso por e-mail.` });
-    } catch {
-      toast({ title: "Erro ao cadastrar", description: "Verifique os dados.", variant: "destructive" });
+    } catch (err: unknown) {
+      const msg = err instanceof Error ? err.message : String(err);
+      console.error("[CreateAffiliate] erro:", msg);
+      toast({
+        title: "Erro ao cadastrar",
+        description: msg || "Verifique os dados e tente novamente.",
+        variant: "destructive",
+      });
     }
   };
 
