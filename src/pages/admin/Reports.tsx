@@ -14,10 +14,13 @@ import { useCommissions } from "@/hooks/useCommissions";
 import { useAffiliates } from "@/hooks/useAffiliates";
 import { SERVICE_LABELS, STATUS_CONFIG, formatCurrency, formatDate } from "@/lib/index";
 import { useToast } from "@/hooks/use-toast";
+import { useCsvExport, CsvFallbackModal } from "@/components/CsvExport";
 
 export default function AdminReports() {
   const { toast } = useToast();
+  const { exportCSV } = useCsvExport();
   const [affiliateFilter, setAffiliateFilter] = useState("all");
+  const [csvModal, setCsvModal] = useState<{ filename: string; csvContent: string } | null>(null);
 
   const { data: allIndications = [], isLoading: loadingInd } = useIndications();
   const { data: allCommissions = [], isLoading: loadingComm } = useCommissions();
@@ -39,7 +42,7 @@ export default function AdminReports() {
     ? Math.round((filtered.filter((i) => ["active", "commission_paid"].includes(i.status)).length / filtered.length) * 100)
     : 0;
 
-  const exportCSV = (type: "indications" | "commissions") => {
+  const handleExport = (type: "indications" | "commissions") => {
     const source = type === "indications" ? filtered : filteredComm;
 
     if (source.length === 0) {
@@ -58,12 +61,8 @@ export default function AdminReports() {
       rows = [
         ["ID", "Cliente", "Telefone", "Afiliado", "Serviço", "Status", "Valor Contrato", "Comissão", "Data"],
         ...filtered.map((i) => [
-          i.id,
-          i.clientName,
-          i.clientPhone,
-          i.affiliateName,
-          SERVICE_LABELS[i.serviceType],
-          STATUS_CONFIG[i.status].label,
+          i.id, i.clientName, i.clientPhone, i.affiliateName,
+          SERVICE_LABELS[i.serviceType], STATUS_CONFIG[i.status].label,
           i.contractValue != null ? `R$ ${i.contractValue.toFixed(2).replace(".", ",")}` : "",
           i.commissionValue != null ? `R$ ${i.commissionValue.toFixed(2).replace(".", ",")}` : "",
           formatDate(i.createdAt),
@@ -74,9 +73,7 @@ export default function AdminReports() {
       rows = [
         ["ID", "Afiliado", "Cliente", "Valor", "Status", "Mês Ref.", "Data Pagamento"],
         ...filteredComm.map((c) => [
-          c.id,
-          c.affiliateName,
-          c.clientName,
+          c.id, c.affiliateName, c.clientName,
           `R$ ${c.value.toFixed(2).replace(".", ",")}`,
           c.status === "paid" ? "Pago" : c.status === "approved" ? "Aprovado" : "Pendente",
           c.referenceMonth,
@@ -86,30 +83,9 @@ export default function AdminReports() {
       filename = `comissoes_${new Date().toISOString().slice(0, 10)}.csv`;
     }
 
-    // Montar CSV com BOM para Excel reconhecer acentos
-    const csv = "\uFEFF" + rows.map((r) =>
-      r.map((cell) => `"${String(cell).replace(/"/g, '""')}"`).join(";")
-    ).join("\r\n");
-
-    // Criar link no DOM e disparar download
-    const blob = new Blob([csv], { type: "text/csv;charset=utf-8;" });
-    const url = URL.createObjectURL(blob);
-    const a = document.createElement("a");
-    a.style.display = "none";
-    a.href = url;
-    a.download = filename;
-    document.body.appendChild(a);
-    a.click();
-    // Limpar após breve delay para garantir que o download iniciou
-    setTimeout(() => {
-      document.body.removeChild(a);
-      URL.revokeObjectURL(url);
-    }, 200);
-
-    toast({
-      title: "Download iniciado!",
-      description: `${filename} (${source.length} registros)`,
-    });
+    const result = exportCSV(rows, filename);
+    // Abre modal de fallback com link direto + opção de copiar
+    setCsvModal(result);
   };
 
   if (isLoading) {
@@ -123,6 +99,7 @@ export default function AdminReports() {
   }
 
   return (
+    <>
     <Layout>
       <div className="space-y-6">
         <div className="flex items-center justify-between">
@@ -131,10 +108,10 @@ export default function AdminReports() {
             <p className="text-sm text-muted-foreground">Análise completa de indicações e comissões</p>
           </div>
           <div className="flex gap-2">
-            <Button variant="outline" size="sm" onClick={() => exportCSV("indications")}>
+            <Button variant="outline" size="sm" onClick={() => handleExport("indications")}>
               <Download size={14} className="mr-1.5" /> Indicações CSV
             </Button>
-            <Button variant="outline" size="sm" onClick={() => exportCSV("commissions")}>
+            <Button variant="outline" size="sm" onClick={() => handleExport("commissions")}>
               <FileSpreadsheet size={14} className="mr-1.5" /> Comissões CSV
             </Button>
           </div>
@@ -225,5 +202,16 @@ export default function AdminReports() {
         </Card>
       </div>
     </Layout>
+
+    {/* Modal de exportação CSV */}
+    {csvModal && (
+      <CsvFallbackModal
+        open={!!csvModal}
+        onClose={() => setCsvModal(null)}
+        filename={csvModal.filename}
+        csvContent={csvModal.csvContent}
+      />
+    )}
+    </>
   );
 }

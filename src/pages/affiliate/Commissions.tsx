@@ -1,3 +1,4 @@
+import { useState } from "react";
 import { motion } from "framer-motion";
 import {
   DollarSign,
@@ -16,6 +17,7 @@ import { useAuth } from "@/hooks/useAuth";
 import { useCommissions } from "@/hooks/useCommissions";
 import { formatCurrency, formatDate } from "@/lib/index";
 import { useToast } from "@/hooks/use-toast";
+import { useCsvExport, CsvFallbackModal } from "@/components/CsvExport";
 
 const STATUS_COMMISSION = {
   pending: { label: "Pendente", color: "text-amber-400", bg: "bg-amber-400/10" },
@@ -26,6 +28,8 @@ const STATUS_COMMISSION = {
 export default function AffiliateCommissions() {
   const { user } = useAuth();
   const { toast } = useToast();
+  const { exportCSV } = useCsvExport();
+  const [csvModal, setCsvModal] = useState<{ filename: string; csvContent: string } | null>(null);
   const { data: commissions = [], isLoading } = useCommissions();
 
   const totalPaid = commissions
@@ -44,7 +48,6 @@ export default function AffiliateCommissions() {
       });
       return;
     }
-
     const rows = [
       ["Mês Ref.", "Cliente", "Valor", "Status", "Forma Pagamento", "Data Pagamento"],
       ...commissions.map((c) => [
@@ -56,28 +59,9 @@ export default function AffiliateCommissions() {
         c.paidAt ? formatDate(c.paidAt) : "-",
       ]),
     ];
-
-    const csv = "\uFEFF" + rows.map((r) =>
-      r.map((cell) => `"${String(cell).replace(/"/g, '""')}"`).join(";")
-    ).join("\r\n");
-
-    const blob = new Blob([csv], { type: "text/csv;charset=utf-8;" });
-    const url = URL.createObjectURL(blob);
-    const a = document.createElement("a");
-    a.style.display = "none";
-    a.href = url;
-    a.download = `minhas_comissoes_${new Date().toISOString().slice(0, 10)}.csv`;
-    document.body.appendChild(a);
-    a.click();
-    setTimeout(() => {
-      document.body.removeChild(a);
-      URL.revokeObjectURL(url);
-    }, 200);
-
-    toast({
-      title: "Download iniciado!",
-      description: `${commissions.length} comissões exportadas.`,
-    });
+    const filename = `minhas_comissoes_${new Date().toISOString().slice(0, 10)}.csv`;
+    const result = exportCSV(rows, filename);
+    setCsvModal(result);
   };
 
   if (isLoading) {
