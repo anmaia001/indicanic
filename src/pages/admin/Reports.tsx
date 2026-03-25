@@ -141,10 +141,10 @@ export default function AdminReports() {
 
         <div className="grid lg:grid-cols-3 gap-4">
           <div className="lg:col-span-2 space-y-4">
-            <IndicationsChart />
-            <CommissionsChart />
+            <IndicationsChart indications={filtered} />
+            <CommissionsChart commissions={filteredComm} />
           </div>
-          <ServiceTypePieChart />
+          <ServiceTypePieChart indications={filtered} />
         </div>
 
         {/* Affiliate performance table */}

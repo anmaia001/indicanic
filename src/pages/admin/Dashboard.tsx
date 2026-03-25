@@ -94,10 +94,10 @@ export default function AdminDashboard() {
         {/* Charts */}
         <div className="grid lg:grid-cols-3 gap-4">
           <div className="lg:col-span-2 space-y-4">
-            <IndicationsChart />
-            <CommissionsChart />
+            <IndicationsChart indications={indications} />
+            <CommissionsChart commissions={commissions} />
           </div>
-          <ServiceTypePieChart />
+          <ServiceTypePieChart indications={indications} />
         </div>
 
         {/* Top affiliates + Recent indications */}
