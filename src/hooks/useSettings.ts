@@ -1,5 +1,6 @@
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
+import { useAuth } from "./useAuth";
 
 export interface CompanySettings {
   id?: string;
@@ -29,16 +30,27 @@ const DEFAULT_SETTINGS: CompanySettings = {
 };
 
 export function useSettings() {
+  const { user } = useAuth();
+
   return useQuery({
-    queryKey: ["company_settings"],
+    queryKey: ["company_settings", user?.id],
+    // Só executa quando o usuário estiver autenticado
+    enabled: !!user,
+    retry: 3,
+    retryDelay: (attempt) => Math.min(1000 * 2 ** attempt, 8000),
+    staleTime: 30_000,
     queryFn: async (): Promise<CompanySettings> => {
+      // Garantir que a sessão está ativa antes de consultar
+      const { data: { session } } = await supabase.auth.getSession();
+      if (!session) throw new Error("Sessão não encontrada — tente recarregar");
+
       const { data, error } = await supabase
         .from("company_settings")
         .select("*")
         .limit(1)
         .maybeSingle();
 
-      if (error) throw error;
+      if (error) throw new Error(error.message);
       if (!data) return DEFAULT_SETTINGS;
 
       return {

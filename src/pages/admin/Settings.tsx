@@ -2,7 +2,7 @@ import { useState, useEffect } from "react";
 import { motion } from "framer-motion";
 import {
   Settings, Shield, Percent, Bell, Save,
-  Building2, Phone, Mail, Globe, Clock, Loader2, KeyRound,
+  Building2, Phone, Mail, Globe, Clock, Loader2, KeyRound, RefreshCw, AlertCircle,
 } from "lucide-react";
 import { Layout } from "@/components/Layout";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
@@ -17,7 +17,7 @@ import type { CompanySettings } from "@/hooks/useSettings";
 
 export default function AdminSettings() {
   const { toast } = useToast();
-  const { data: savedSettings, isLoading } = useSettings();
+  const { data: savedSettings, isLoading, isError, error, refetch } = useSettings();
   const saveSettings = useSaveSettings();
   const changePassword = useChangePassword();
 
@@ -79,8 +79,29 @@ export default function AdminSettings() {
   if (isLoading) {
     return (
       <Layout>
-        <div className="flex items-center justify-center h-64">
+        <div className="flex flex-col items-center justify-center h-64 gap-3 text-muted-foreground">
           <Loader2 size={32} className="animate-spin text-primary" />
+          <p className="text-sm">Carregando configurações...</p>
+        </div>
+      </Layout>
+    );
+  }
+
+  if (isError) {
+    return (
+      <Layout>
+        <div className="flex flex-col items-center justify-center h-64 gap-4">
+          <div className="flex items-center gap-2 text-destructive">
+            <AlertCircle size={24} />
+            <p className="text-sm font-medium">Erro ao carregar configurações</p>
+          </div>
+          <p className="text-xs text-muted-foreground max-w-xs text-center">
+            {error instanceof Error ? error.message : "Tente novamente"}
+          </p>
+          <Button variant="outline" size="sm" onClick={() => refetch()}>
+            <RefreshCw size={14} className="mr-2" />
+            Tentar novamente
+          </Button>
         </div>
       </Layout>
     );

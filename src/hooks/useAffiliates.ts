@@ -1,6 +1,7 @@
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
 import type { User } from "@/lib/index";
+import { useAuth } from "./useAuth";
 
 interface ProfileRow {
   id: string;
@@ -44,6 +45,7 @@ function rowToUser(row: ProfileRow): User {
 // ============================================================
 
 export function useAffiliates() {
+  const { user } = useAuth();
   return useQuery({
     queryKey: ["affiliates"],
     queryFn: async (): Promise<User[]> => {
@@ -90,6 +92,9 @@ export function useAffiliates() {
 
       return usersWithStats;
     },
+    enabled: !!user,
+    retry: 3,
+    retryDelay: (attempt: number) => Math.min(1000 * 2 ** attempt, 8000),
     staleTime: 60_000,
   });
 }

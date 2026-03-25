@@ -60,6 +60,8 @@ export function useCommissions(affiliateId?: string) {
       return (data as CommissionRow[]).map(rowToCommission);
     },
     enabled: !!user,
+    retry: 3,
+    retryDelay: (attempt: number) => Math.min(1000 * 2 ** attempt, 8000),
     staleTime: 30_000,
   });
 }

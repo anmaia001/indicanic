@@ -84,6 +84,8 @@ export function useIndications(affiliateId?: string) {
       return (data as IndicationRow[]).map(rowToIndication);
     },
     enabled: !!user,
+    retry: 3,
+    retryDelay: (attempt: number) => Math.min(1000 * 2 ** attempt, 8000),
     staleTime: 30_000,
   });
 }
