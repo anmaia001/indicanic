@@ -242,7 +242,10 @@ function SidebarContent({
   return (
     <>
       {/* Logo */}
-      <div className="h-14 flex items-center gap-2 px-4 border-b border-sidebar-border shrink-0">
+      <NavLink
+        to={user?.role === "admin" ? ROUTE_PATHS.ADMIN_DASHBOARD : ROUTE_PATHS.AFFILIATE_DASHBOARD}
+        className="h-14 flex items-center gap-2 px-4 border-b border-sidebar-border shrink-0 hover:bg-sidebar-accent/50 transition-colors duration-150"
+      >
         <div className="w-8 h-8 rounded-lg bg-primary/20 border border-primary/30 flex items-center justify-center">
           <Shield size={16} className="text-primary" />
         </div>
@@ -254,7 +257,7 @@ function SidebarContent({
             Segurança Eletrônica
           </div>
         </div>
-      </div>
+      </NavLink>
 
       {/* Nav */}
       <nav className="flex-1 p-3 space-y-0.5 overflow-y-auto">
