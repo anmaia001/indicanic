@@ -175,15 +175,20 @@
 @layer base {
   * {
     @apply border-border outline-ring/50;
+    /* Garante que nenhum elemento quebre o container pai */
+    min-width: 0;
   }
 
   html {
     @apply scroll-smooth antialiased;
+    /* Impede scroll horizontal na página toda */
+    overflow-x: hidden;
   }
 
   body {
     @apply bg-background text-foreground font-sans min-h-screen;
     font-feature-settings: "cv02", "cv03", "cv04", "cv11";
+    overflow-x: hidden;
   }
 
   h1, h2, h3, h4, h5, h6 {

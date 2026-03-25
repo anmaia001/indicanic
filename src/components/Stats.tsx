@@ -72,26 +72,26 @@ export function StatCard({
       animate={{ opacity: 1, y: 0 }}
       transition={{ duration: 0.4, delay, type: "spring", stiffness: 300, damping: 30 }}
     >
-      <Card className={`border ${colors.border} ${colors.glow} bg-card hover:scale-[1.01] transition-transform duration-200`}>
+      <Card className={`border ${colors.border} ${colors.glow} bg-card hover:scale-[1.01] transition-transform duration-200 overflow-hidden`}>
         <CardContent className="p-5">
-          <div className="flex items-start justify-between mb-3">
-            <div className={`w-10 h-10 rounded-lg ${colors.bg} flex items-center justify-center`}>
+          <div className="flex items-start justify-between mb-3 gap-2">
+            <div className={`shrink-0 w-10 h-10 rounded-lg ${colors.bg} flex items-center justify-center`}>
               <Icon size={20} className={colors.icon} />
             </div>
             {change !== undefined && (
-              <div className={`flex items-center gap-1 text-xs font-medium ${change >= 0 ? "text-emerald-400" : "text-destructive"}`}>
+              <div className={`flex items-center gap-1 text-xs font-medium whitespace-nowrap ${change >= 0 ? "text-emerald-400" : "text-destructive"}`}>
                 {change >= 0 ? <TrendingUp size={12} /> : <TrendingDown size={12} />}
                 {Math.abs(change)}%
               </div>
             )}
           </div>
-          <div>
-            <p className="text-2xl font-bold text-foreground tracking-tight">
+          <div className="min-w-0">
+            <p className="text-2xl font-bold text-foreground tracking-tight truncate">
               {displayValue}
             </p>
-            <p className="text-sm text-muted-foreground mt-0.5">{title}</p>
+            <p className="text-sm text-muted-foreground mt-0.5 truncate">{title}</p>
             {changeLabel && (
-              <p className="text-xs text-muted-foreground/70 mt-1">{changeLabel}</p>
+              <p className="text-xs text-muted-foreground/70 mt-1 truncate">{changeLabel}</p>
             )}
           </div>
         </CardContent>
@@ -115,10 +115,10 @@ interface PipelineStepProps {
 
 export function PipelineStep({ step, label, count, color, bg, isLast }: PipelineStepProps) {
   return (
-    <div className="flex items-center gap-1">
-      <div className={`flex flex-col items-center gap-1 px-3 py-2 rounded-lg ${bg} border border-white/5 min-w-[80px]`}>
+    <div className="flex items-center gap-1 min-w-0">
+      <div className={`flex flex-col items-center gap-1 px-3 py-2 rounded-lg ${bg} border border-white/5 min-w-[72px] max-w-[100px] overflow-hidden`}>
         <span className={`text-lg font-bold ${color}`}>{count}</span>
-        <span className="text-xs text-muted-foreground text-center leading-tight">{label}</span>
+        <span className="text-xs text-muted-foreground text-center leading-tight line-clamp-2">{label}</span>
       </div>
       {!isLast && (
         <div className="text-muted-foreground/30 text-lg font-light">›</div>

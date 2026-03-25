@@ -155,8 +155,8 @@ export function Layout({ children }: { children: React.ReactNode }) {
       {/* Main content */}
       <div className="flex flex-col flex-1 min-w-0 overflow-hidden">
         {/* Top header */}
-        <header className="h-14 border-b border-border bg-card/50 flex items-center justify-between px-4 shrink-0">
-          <div className="flex items-center gap-3">
+        <header className="h-14 border-b border-border bg-card/50 flex items-center justify-between px-4 shrink-0 overflow-hidden gap-2">
+          <div className="flex items-center gap-3 min-w-0 shrink-0">
             <button
               className="lg:hidden text-muted-foreground hover:text-foreground"
               onClick={() => setSidebarOpen(true)}

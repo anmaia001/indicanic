@@ -109,39 +109,40 @@ function IndicationCard({
       animate={{ opacity: 1, y: 0 }}
       transition={{ type: "spring", stiffness: 300, damping: 30 }}
     >
-      <Card className="border-border hover:border-primary/30 hover:shadow-[0_4px_20px_-4px_oklch(0.68_0.21_225/0.15)] transition-all duration-200 cursor-pointer"
+      <Card className="border-border hover:border-primary/30 hover:shadow-[0_4px_20px_-4px_oklch(0.68_0.21_225/0.15)] transition-all duration-200 cursor-pointer overflow-hidden"
         onClick={() => onView(indication)}
       >
         <CardContent className="p-4">
           <div className="flex items-start justify-between gap-3">
-            <div className="flex-1 min-w-0">
-              <div className="flex items-center gap-2 mb-1">
+            <div className="flex-1 min-w-0 overflow-hidden">
+              <div className="flex items-center gap-2 mb-1 flex-wrap">
                 <h4 className="font-semibold text-sm text-foreground truncate">
                   {indication.clientName}
                 </h4>
                 <StatusBadge status={indication.status} />
               </div>
-              <div className="flex items-center gap-3 text-xs text-muted-foreground mb-2">
-                <span className="flex items-center gap-1">
+              <div className="flex items-center gap-3 text-xs text-muted-foreground mb-2 flex-wrap">
+                <span className="flex items-center gap-1 shrink-0">
                   <Phone size={11} /> {formatPhone(indication.clientPhone)}
                 </span>
                 {indication.clientEmail && (
-                  <span className="flex items-center gap-1 truncate">
-                    <Mail size={11} /> {indication.clientEmail}
+                  <span className="flex items-center gap-1 truncate min-w-0">
+                    <Mail size={11} className="shrink-0" />
+                    <span className="truncate">{indication.clientEmail}</span>
                   </span>
                 )}
               </div>
-              <div className="flex items-center gap-3">
-                <Badge variant="secondary" className="text-xs">
+              <div className="flex items-center gap-2 flex-wrap">
+                <Badge variant="secondary" className="text-xs shrink-0">
                   {SERVICE_LABELS[indication.serviceType]}
                 </Badge>
                 {indication.contractValue && (
-                  <span className="text-xs text-muted-foreground">
+                  <span className="text-xs text-muted-foreground whitespace-nowrap">
                     Contrato: <span className="text-foreground font-medium">{formatCurrency(indication.contractValue)}</span>
                   </span>
                 )}
                 {indication.commissionValue && (
-                  <span className="text-xs text-emerald-400 font-medium">
+                  <span className="text-xs text-emerald-400 font-medium whitespace-nowrap">
                     Comissão: {formatCurrency(indication.commissionValue)}
                   </span>
                 )}

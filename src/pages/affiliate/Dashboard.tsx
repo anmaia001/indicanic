@@ -104,14 +104,14 @@ export default function AffiliateDashboard() {
         </div>
 
         {/* Pipeline */}
-        <Card className="border-border">
+        <Card className="border-border overflow-hidden">
           <CardHeader className="pb-3">
             <CardTitle className="text-sm font-medium text-foreground">
               Pipeline de Indicações
             </CardTitle>
           </CardHeader>
           <CardContent>
-            <div className="flex items-center gap-1 flex-wrap">
+            <div className="flex items-center gap-1 flex-wrap overflow-x-auto pb-1">
               <PipelineStep step={1} label="Indicação" count={stats.indication} color="text-muted-foreground" bg="bg-muted/50" />
               <PipelineStep step={2} label="Orçamento" count={stats.budget} color="text-amber-400" bg="bg-amber-400/10" />
               <PipelineStep step={3} label="Instalação" count={stats.installation} color="text-primary" bg="bg-primary/10" />

@@ -71,12 +71,12 @@ export default function AdminDashboard() {
         </div>
 
         {/* Pipeline overview */}
-        <Card className="border-border">
+        <Card className="border-border overflow-hidden">
           <CardHeader className="pb-3">
             <CardTitle className="text-sm font-medium">Pipeline Geral</CardTitle>
           </CardHeader>
           <CardContent>
-            <div className="flex items-center gap-1 flex-wrap">
+            <div className="flex items-center gap-1 flex-wrap overflow-x-auto pb-1">
               <PipelineStep step={1} label="Indicação" count={kpis.indication} color="text-muted-foreground" bg="bg-muted/50" />
               <PipelineStep step={2} label="Orçamento" count={kpis.budget} color="text-amber-400" bg="bg-amber-400/10" />
               <PipelineStep step={3} label="Instalação" count={kpis.installation} color="text-primary" bg="bg-primary/10" />
@@ -102,7 +102,7 @@ export default function AdminDashboard() {
 
         {/* Top affiliates + Recent indications */}
         <div className="grid lg:grid-cols-2 gap-4">
-          <Card className="border-border">
+          <Card className="border-border overflow-hidden">
             <CardHeader className="pb-3">
               <CardTitle className="text-sm font-medium">Top Afiliados</CardTitle>
             </CardHeader>
@@ -113,12 +113,12 @@ export default function AdminDashboard() {
                 <div className="space-y-3">
                   {topAffiliates.map((aff, idx) => (
                     <div key={aff.id} className="flex items-center gap-3">
-                      <span className="text-sm font-bold text-muted-foreground w-4">{idx + 1}</span>
+                      <span className="text-sm font-bold text-muted-foreground w-4 shrink-0">{idx + 1}</span>
                       <div className="flex-1 min-w-0">
                         <p className="text-sm font-medium text-foreground truncate">{aff.name}</p>
                         <p className="text-xs text-muted-foreground">{aff.totalIndications} indicações</p>
                       </div>
-                      <span className="text-sm font-bold text-emerald-400">
+                      <span className="text-sm font-bold text-emerald-400 shrink-0 whitespace-nowrap">
                         {formatCurrency(aff.totalCommissions)}
                       </span>
                     </div>
@@ -128,7 +128,7 @@ export default function AdminDashboard() {
             </CardContent>
           </Card>
 
-          <Card className="border-border">
+          <Card className="border-border overflow-hidden">
             <CardHeader className="pb-3">
               <CardTitle className="text-sm font-medium">Indicações Recentes</CardTitle>
             </CardHeader>
@@ -141,11 +141,13 @@ export default function AdminDashboard() {
                     <div key={ind.id} className="flex items-center justify-between gap-2 py-1.5 border-b border-border/40 last:border-0">
                       <div className="min-w-0 flex-1">
                         <p className="text-sm font-medium text-foreground truncate">{ind.clientName}</p>
-                        <p className="text-xs text-muted-foreground">
+                        <p className="text-xs text-muted-foreground truncate">
                           {ind.affiliateName} · {SERVICE_LABELS[ind.serviceType]}
                         </p>
                       </div>
-                      <StatusBadge status={ind.status} />
+                      <div className="shrink-0">
+                        <StatusBadge status={ind.status} />
+                      </div>
                     </div>
                   ))}
                 </div>
