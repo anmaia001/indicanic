@@ -6,7 +6,7 @@ interface AuthState {
   user: User | null;
   isLoading: boolean;
   initialized: boolean;
-  login: (email: string, password: string) => Promise<boolean>;
+  login: (email: string, password: string, remember: boolean) => Promise<boolean>;
   logout: () => void;
   initialize: () => Promise<void>;
 }
@@ -66,9 +66,16 @@ export const useAuth = create<AuthState>((set, get) => ({
     });
   },
 
-  login: async (email: string, password: string) => {
+  login: async (email: string, password: string, remember: boolean) => {
     set({ isLoading: true });
     try {
+      // Salvar ou limpar e-mail conforme preferência
+      if (remember) {
+        localStorage.setItem("indicanic_remembered_email", email.toLowerCase().trim());
+      } else {
+        localStorage.removeItem("indicanic_remembered_email");
+      }
+
       const { data, error } = await supabase.auth.signInWithPassword({
         email: email.toLowerCase().trim(),
         password,
@@ -84,6 +91,12 @@ export const useAuth = create<AuthState>((set, get) => ({
         await supabase.auth.signOut();
         set({ isLoading: false });
         return false;
+      }
+
+      // Quando NÃO lembrar: agenda logout ao fechar o navegador (sessão temporária)
+      if (!remember) {
+        const handleUnload = () => { supabase.auth.signOut(); };
+        window.addEventListener("beforeunload", handleUnload, { once: true });
       }
 
       set({ user: profile, isLoading: false });

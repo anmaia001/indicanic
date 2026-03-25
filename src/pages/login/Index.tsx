@@ -1,25 +1,36 @@
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { useNavigate } from "react-router-dom";
 import { motion } from "framer-motion";
 import { Shield, Eye, EyeOff, Lock, Mail, AlertCircle } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
+import { Checkbox } from "@/components/ui/checkbox";
 import { useAuth } from "@/hooks/useAuth";
 import { ROUTE_PATHS } from "@/lib/index";
 
 export default function LoginPage() {
   const { login, isLoading } = useAuth();
   const navigate = useNavigate();
-  const [email, setEmail] = useState("");
+
+  const savedEmail = localStorage.getItem("indicanic_remembered_email") ?? "";
+  const [email, setEmail] = useState(savedEmail);
   const [password, setPassword] = useState("");
   const [showPassword, setShowPassword] = useState(false);
+  const [remember, setRemember] = useState(!!savedEmail);
   const [error, setError] = useState("");
+
+  // Se já havia e-mail salvo, focar no campo de senha
+  useEffect(() => {
+    if (savedEmail) {
+      document.getElementById("password-input")?.focus();
+    }
+  }, [savedEmail]);
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     setError("");
-    const ok = await login(email, password);
+    const ok = await login(email, password, remember);
     if (ok) {
       const state = useAuth.getState();
       if (state.user?.role === "admin") {
@@ -116,11 +127,13 @@ export default function LoginPage() {
           </div>
 
           <form onSubmit={handleSubmit} className="space-y-4">
+            {/* E-mail */}
             <div className="space-y-1.5">
-              <Label>E-mail</Label>
+              <Label htmlFor="email-input">E-mail</Label>
               <div className="relative">
                 <Mail size={15} className="absolute left-3 top-1/2 -translate-y-1/2 text-muted-foreground" />
                 <Input
+                  id="email-input"
                   type="email"
                   className="pl-9"
                   placeholder="seu@email.com"
@@ -130,11 +143,14 @@ export default function LoginPage() {
                 />
               </div>
             </div>
+
+            {/* Senha */}
             <div className="space-y-1.5">
-              <Label>Senha</Label>
+              <Label htmlFor="password-input">Senha</Label>
               <div className="relative">
                 <Lock size={15} className="absolute left-3 top-1/2 -translate-y-1/2 text-muted-foreground" />
                 <Input
+                  id="password-input"
                   type={showPassword ? "text" : "password"}
                   className="pl-9 pr-9"
                   placeholder="••••••••"
@@ -152,13 +168,29 @@ export default function LoginPage() {
               </div>
             </div>
 
+            {/* Lembrar-me */}
+            <div className="flex items-center gap-2.5 py-0.5">
+              <Checkbox
+                id="remember-me"
+                checked={remember}
+                onCheckedChange={(v) => setRemember(!!v)}
+                className="border-border data-[state=checked]:bg-primary data-[state=checked]:border-primary"
+              />
+              <label
+                htmlFor="remember-me"
+                className="text-sm text-muted-foreground cursor-pointer select-none hover:text-foreground transition-colors"
+              >
+                Lembrar meu e-mail neste dispositivo
+              </label>
+            </div>
+
             {error && (
               <motion.div
                 className="flex items-center gap-2 text-sm text-destructive bg-destructive/10 border border-destructive/20 rounded-lg p-3"
                 initial={{ opacity: 0, scale: 0.95 }}
                 animate={{ opacity: 1, scale: 1 }}
               >
-                <AlertCircle size={14} />
+                <AlertCircle size={14} className="shrink-0" />
                 {error}
               </motion.div>
             )}
