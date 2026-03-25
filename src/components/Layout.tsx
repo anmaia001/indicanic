@@ -14,10 +14,10 @@ import {
   Shield,
   BarChart3,
   UserCircle,
-  Bell,
   ChevronDown,
 } from "lucide-react";
 import { Button } from "@/components/ui/button";
+import { NotificationPanel } from "@/components/NotificationPanel";
 import { Badge } from "@/components/ui/badge";
 import { Avatar, AvatarFallback } from "@/components/ui/avatar";
 import {
@@ -177,10 +177,7 @@ export function Layout({ children }: { children: React.ReactNode }) {
           </div>
 
           <div className="flex items-center gap-2">
-            <Button variant="ghost" size="icon" className="text-muted-foreground hover:text-foreground relative">
-              <Bell size={18} />
-              <span className="absolute top-1.5 right-1.5 w-2 h-2 bg-primary rounded-full"></span>
-            </Button>
+            <NotificationPanel />
 
             <DropdownMenu>
               <DropdownMenuTrigger asChild>
