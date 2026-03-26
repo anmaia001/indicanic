@@ -9,6 +9,7 @@ import { ROUTE_PATHS } from "@/lib/index";
 
 // Pages
 import LoginPage from "./pages/login/Index";
+import ResetPasswordPage from "./pages/login/ResetPassword";
 import AffiliateDashboard from "./pages/affiliate/Dashboard";
 import AffiliateIndications from "./pages/affiliate/Indications";
 import AffiliateCommissions from "./pages/affiliate/Commissions";
@@ -52,6 +53,7 @@ function AppRoutes() {
       <Routes>
         <Route path={ROUTE_PATHS.HOME} element={<HomeRedirect />} />
         <Route path={ROUTE_PATHS.LOGIN} element={<LoginPage />} />
+        <Route path={ROUTE_PATHS.RESET_PASSWORD} element={<ResetPasswordPage />} />
 
         {/* Affiliate */}
         <Route path={ROUTE_PATHS.AFFILIATE_DASHBOARD} element={<AuthGuard role="affiliate"><AffiliateDashboard /></AuthGuard>} />

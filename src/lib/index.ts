@@ -15,6 +15,7 @@ export const ROUTE_PATHS = {
   ADMIN_INDICATIONS: "/admin/indicacoes",
   ADMIN_REPORTS: "/admin/relatorios",
   ADMIN_SETTINGS: "/admin/configuracoes",
+  RESET_PASSWORD: "/redefinir-senha",
 } as const;
 
 // ==============================

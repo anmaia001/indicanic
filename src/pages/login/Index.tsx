@@ -1,13 +1,14 @@
 import { useState, useEffect } from "react";
 import { useNavigate } from "react-router-dom";
-import { motion } from "framer-motion";
-import { Shield, Eye, EyeOff, Lock, Mail, AlertCircle, ArrowRight, CheckCircle2 } from "lucide-react";
+import { motion, AnimatePresence } from "framer-motion";
+import { Shield, Eye, EyeOff, Lock, Mail, AlertCircle, ArrowRight, CheckCircle2, KeyRound, X, Loader2 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Checkbox } from "@/components/ui/checkbox";
 import { useAuth } from "@/hooks/useAuth";
 import { ROUTE_PATHS } from "@/lib/index";
+import { supabase } from "@/integrations/supabase/client";
 
 const FEATURES = [
   "Pipeline visual de todas as etapas",
@@ -27,6 +28,40 @@ export default function LoginPage() {
   const [remember, setRemember]         = useState(!!savedEmail);
   const [error, setError]               = useState("");
 
+  // ── Modal "Esqueceu a senha" ──
+  const [showForgot, setShowForgot]     = useState(false);
+  const [forgotEmail, setForgotEmail]   = useState("");
+  const [forgotStatus, setForgotStatus] = useState<"idle" | "sending" | "sent" | "error">("idle");
+  const [forgotError, setForgotError]   = useState("");
+
+  const openForgot = () => {
+    setForgotEmail(email); // pré-preenche com o e-mail já digitado
+    setForgotStatus("idle");
+    setForgotError("");
+    setShowForgot(true);
+  };
+
+  const handleForgot = async (e: React.FormEvent) => {
+    e.preventDefault();
+    if (!forgotEmail) return;
+    setForgotStatus("sending");
+    setForgotError("");
+
+    // redirectTo aponta para a página de redefinição no app
+    const redirectTo = `${window.location.origin}${window.location.pathname}#${ROUTE_PATHS.RESET_PASSWORD}`;
+
+    const { error: err } = await supabase.auth.resetPasswordForEmail(forgotEmail.toLowerCase().trim(), {
+      redirectTo,
+    });
+
+    if (err) {
+      setForgotStatus("error");
+      setForgotError("Não foi possível enviar o e-mail. Verifique o endereço e tente novamente.");
+    } else {
+      setForgotStatus("sent");
+    }
+  };
+
   useEffect(() => {
     if (savedEmail) document.getElementById("password-input")?.focus();
   }, [savedEmail]);
@@ -44,6 +79,7 @@ export default function LoginPage() {
   };
 
   return (
+    <>
     <div className="min-h-screen bg-background dark flex flex-col lg:flex-row">
 
       {/* ── Left — branding panel ─────────────────────────────── */}
@@ -210,8 +246,19 @@ export default function LoginPage() {
             </Button>
           </form>
 
+          {/* Link esqueceu a senha */}
+          <div className="mt-4 text-center">
+            <button
+              type="button"
+              onClick={openForgot}
+              className="text-xs text-muted-foreground hover:text-primary transition-colors underline-offset-4 hover:underline"
+            >
+              Esqueceu sua senha?
+            </button>
+          </div>
+
           {/* Footer note */}
-          <div className="mt-8 border-t border-border/50 pt-6">
+          <div className="mt-6 border-t border-border/50 pt-6">
             <p className="text-xs text-muted-foreground/60 text-center leading-relaxed">
               Acesso exclusivo para afiliados cadastrados.
               <br />
@@ -221,5 +268,106 @@ export default function LoginPage() {
         </motion.div>
       </div>
     </div>
+
+    {/* ── Modal Esqueceu a Senha ── */}
+    <AnimatePresence>
+      {showForgot && (
+        <motion.div
+          className="fixed inset-0 z-50 flex items-center justify-center p-4"
+          initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }}
+        >
+          {/* Overlay */}
+          <div className="absolute inset-0 bg-black/60 backdrop-blur-sm" onClick={() => setShowForgot(false)} />
+
+          {/* Card */}
+          <motion.div
+            className="relative z-10 w-full max-w-sm bg-card border border-border rounded-2xl p-7 shadow-2xl dark"
+            initial={{ opacity: 0, scale: 0.95, y: 12 }}
+            animate={{ opacity: 1, scale: 1, y: 0 }}
+            exit={{ opacity: 0, scale: 0.95, y: 12 }}
+            transition={{ duration: 0.25 }}
+          >
+            {/* Fechar */}
+            <button
+              onClick={() => setShowForgot(false)}
+              className="absolute top-4 right-4 text-muted-foreground hover:text-foreground transition-colors"
+            >
+              <X size={16} />
+            </button>
+
+            {forgotStatus !== "sent" ? (
+              <>
+                {/* Ícone + título */}
+                <div className="flex items-center gap-3 mb-5">
+                  <div className="w-9 h-9 rounded-xl bg-primary/15 border border-primary/20 flex items-center justify-center shrink-0">
+                    <KeyRound size={17} className="text-primary" />
+                  </div>
+                  <div>
+                    <h3 className="text-base font-bold text-foreground" style={{ fontFamily: "var(--font-display)" }}>Recuperar senha</h3>
+                    <p className="text-xs text-muted-foreground">Enviaremos um link por e-mail</p>
+                  </div>
+                </div>
+
+                <form onSubmit={handleForgot} className="space-y-4">
+                  <div className="space-y-2">
+                    <Label className="text-sm font-medium text-foreground/90">E-mail cadastrado</Label>
+                    <div className="relative">
+                      <Mail size={14} className="absolute left-3.5 top-1/2 -translate-y-1/2 text-muted-foreground" />
+                      <Input
+                        type="email"
+                        className="pl-10 h-11 bg-background/60 border-border/60 focus:border-primary/50"
+                        placeholder="seu@email.com"
+                        value={forgotEmail}
+                        onChange={(e) => setForgotEmail(e.target.value)}
+                        required
+                        autoFocus
+                      />
+                    </div>
+                  </div>
+
+                  {forgotStatus === "error" && (
+                    <motion.div
+                      className="flex items-center gap-2 text-sm text-destructive bg-destructive/8 border border-destructive/20 rounded-xl px-3.5 py-3"
+                      initial={{ opacity: 0, scale: 0.97 }} animate={{ opacity: 1, scale: 1 }}
+                    >
+                      <AlertCircle size={14} className="shrink-0" />
+                      {forgotError}
+                    </motion.div>
+                  )}
+
+                  <Button type="submit" className="w-full h-11 font-semibold" disabled={forgotStatus === "sending"}>
+                    {forgotStatus === "sending"
+                      ? <><Loader2 size={14} className="animate-spin mr-2" />Enviando...</>
+                      : "Enviar link de recuperação"
+                    }
+                  </Button>
+                </form>
+              </>
+            ) : (
+              /* Estado: e-mail enviado */
+              <motion.div
+                className="text-center space-y-4 py-2"
+                initial={{ opacity: 0, scale: 0.96 }} animate={{ opacity: 1, scale: 1 }}
+              >
+                <div className="w-14 h-14 rounded-full bg-emerald-500/10 flex items-center justify-center mx-auto">
+                  <CheckCircle2 size={28} className="text-emerald-400" />
+                </div>
+                <div>
+                  <h3 className="text-base font-bold text-foreground">E-mail enviado!</h3>
+                  <p className="text-sm text-muted-foreground mt-1 leading-relaxed">
+                    Verifique sua caixa de entrada em <strong className="text-foreground">{forgotEmail}</strong> e clique no link para redefinir sua senha.
+                  </p>
+                  <p className="text-xs text-muted-foreground/60 mt-2">Não recebeu? Verifique o spam ou tente novamente.</p>
+                </div>
+                <Button variant="outline" className="w-full" onClick={() => setShowForgot(false)}>
+                  Fechar
+                </Button>
+              </motion.div>
+            )}
+          </motion.div>
+        </motion.div>
+      )}
+    </AnimatePresence>
+    </>
   );
 }
