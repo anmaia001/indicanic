@@ -1,8 +1,9 @@
-import { useState } from "react";
+import { useState, useCallback } from "react";
 import { motion } from "framer-motion";
 import {
   UserPlus, Search, CheckCircle, Edit,
   Percent, Phone, Mail, TrendingUp, DollarSign, Loader2, AlertCircle, Users,
+  RefreshCw, Eye, EyeOff, Copy, Check,
 } from "lucide-react";
 import { Layout } from "@/components/Layout";
 import { Card, CardContent } from "@/components/ui/card";
@@ -31,9 +32,37 @@ export default function AdminAffiliates() {
   const [editRate, setEditRate] = useState(10);
   const [showAddModal, setShowAddModal] = useState(false);
   const [addError, setAddError] = useState("");
+  const [showPassword, setShowPassword] = useState(false);
+  const [copied, setCopied] = useState(false);
   const [newAffiliate, setNewAffiliate] = useState({
     name: "", email: "", phone: "", commissionRate: 10, temporaryPassword: "",
   });
+
+  // Gera senha aleatória forte: 4 segmentos legíveis
+  const generatePassword = useCallback(() => {
+    const upper = "ABCDEFGHJKLMNPQRSTUVWXYZ";
+    const lower = "abcdefghjkmnpqrstuvwxyz";
+    const digits = "23456789";
+    const special = "@#!";
+    const rand = (s: string) => s[Math.floor(Math.random() * s.length)];
+    const base = [
+      rand(upper), rand(upper),
+      rand(lower), rand(lower),
+      rand(digits), rand(digits),
+      rand(special),
+      rand(upper), rand(lower), rand(digits),
+    ].sort(() => Math.random() - 0.5).join("");
+    return base;
+  }, []);
+
+  // Abre modal já com senha gerada
+  const openAddModal = () => {
+    setNewAffiliate({ name: "", email: "", phone: "", commissionRate: 10, temporaryPassword: generatePassword() });
+    setAddError("");
+    setShowPassword(false);
+    setCopied(false);
+    setShowAddModal(true);
+  };
 
   const filtered = affiliates.filter(
     (a) => !search || a.name.toLowerCase().includes(search.toLowerCase()) || a.email.toLowerCase().includes(search.toLowerCase())
@@ -57,6 +86,8 @@ export default function AdminAffiliates() {
       await createAffiliate.mutateAsync(newAffiliate);
       setShowAddModal(false);
       setAddError("");
+      setShowPassword(false);
+      setCopied(false);
       setNewAffiliate({ name: "", email: "", phone: "", commissionRate: 10, temporaryPassword: "" });
       toast({ title: "Afiliado cadastrado!", description: `${newAffiliate.name} recebeu acesso por e-mail.` });
     } catch (err: unknown) {
@@ -88,7 +119,7 @@ export default function AdminAffiliates() {
       <div className="space-y-7">
 
         <PageHeader title="Afiliados" subtitle="Gerencie os afiliados da plataforma" icon={Users}>
-          <Button size="sm" onClick={() => setShowAddModal(true)}>
+          <Button size="sm" onClick={openAddModal}>
             <UserPlus size={14} className="mr-1.5" /> Novo Afiliado
           </Button>
         </PageHeader>
@@ -172,7 +203,7 @@ export default function AdminAffiliates() {
       </div>
 
       {/* Add affiliate modal */}
-      <Dialog open={showAddModal} onOpenChange={(v) => { setShowAddModal(v); if (!v) setAddError(""); }}>
+      <Dialog open={showAddModal} onOpenChange={(v) => { setShowAddModal(v); if (!v) { setAddError(""); setShowPassword(false); setCopied(false); } }}>
         <DialogContent className="max-w-md dark">
           <DialogHeader>
             <DialogTitle className="flex items-center gap-2"><UserPlus size={18} className="text-primary" /> Novo Afiliado</DialogTitle>
@@ -197,9 +228,51 @@ export default function AdminAffiliates() {
               <Input value={newAffiliate.phone} onChange={(e) => setNewAffiliate({ ...newAffiliate, phone: e.target.value })} placeholder="(11) 99999-9999" />
             </div>
             <div className="space-y-1.5">
-              <Label>Senha temporária *</Label>
-              <Input type="password" value={newAffiliate.temporaryPassword} onChange={(e) => setNewAffiliate({ ...newAffiliate, temporaryPassword: e.target.value })} placeholder="Mínimo 8 caracteres" />
-              <p className="text-xs text-muted-foreground">O afiliado poderá alterar após o primeiro acesso</p>
+              <div className="flex items-center justify-between">
+                <Label>Senha de acesso *</Label>
+                <button
+                  type="button"
+                  onClick={() => setNewAffiliate({ ...newAffiliate, temporaryPassword: generatePassword() })}
+                  className="flex items-center gap-1 text-xs text-primary hover:text-primary/80 transition-colors"
+                  title="Gerar nova senha"
+                >
+                  <RefreshCw size={11} /> Gerar nova
+                </button>
+              </div>
+              <div className="relative">
+                <Input
+                  type={showPassword ? "text" : "password"}
+                  value={newAffiliate.temporaryPassword}
+                  onChange={(e) => setNewAffiliate({ ...newAffiliate, temporaryPassword: e.target.value })}
+                  placeholder="Senha gerada automaticamente"
+                  className="pr-20 font-mono text-sm"
+                />
+                {/* Mostrar/ocultar */}
+                <button
+                  type="button"
+                  onClick={() => setShowPassword(!showPassword)}
+                  className="absolute right-9 top-1/2 -translate-y-1/2 text-muted-foreground hover:text-foreground transition-colors"
+                  title={showPassword ? "Ocultar senha" : "Ver senha"}
+                >
+                  {showPassword ? <EyeOff size={14} /> : <Eye size={14} />}
+                </button>
+                {/* Copiar */}
+                <button
+                  type="button"
+                  onClick={() => {
+                    navigator.clipboard.writeText(newAffiliate.temporaryPassword);
+                    setCopied(true);
+                    setTimeout(() => setCopied(false), 2000);
+                  }}
+                  className="absolute right-3 top-1/2 -translate-y-1/2 text-muted-foreground hover:text-foreground transition-colors"
+                  title="Copiar senha"
+                >
+                  {copied ? <Check size={14} className="text-emerald-400" /> : <Copy size={14} />}
+                </button>
+              </div>
+              <p className="text-xs text-muted-foreground">
+                Senha gerada automaticamente. Copie e envie ao afiliado — ele poderá alterá-la no próprio perfil.
+              </p>
             </div>
             <div className="space-y-1.5">
               <Label>Taxa de Comissão (%)</Label>
