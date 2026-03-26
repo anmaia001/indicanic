@@ -1,4 +1,4 @@
-import { useState } from "react";
+import * as DropdownMenuPrimitive from "@radix-ui/react-dropdown-menu";
 import { useNavigate } from "react-router-dom";
 import { Bell, CheckCheck, TrendingUp, AlertCircle, Info, Loader2, ArrowRight } from "lucide-react";
 import { Button } from "@/components/ui/button";
@@ -10,10 +10,10 @@ import type { AppNotification } from "@/hooks/useNotifications";
 import { formatDate } from "@/lib/index";
 
 const TYPE_CONFIG = {
-  new_indication: { icon: TrendingUp,   color: "text-primary",     bg: "bg-primary/10"     },
-  status_change:  { icon: TrendingUp,   color: "text-amber-400",   bg: "bg-amber-400/10"   },
-  commission:     { icon: CheckCheck,   color: "text-emerald-400", bg: "bg-emerald-400/10" },
-  info:           { icon: Info,         color: "text-blue-400",    bg: "bg-blue-400/10"    },
+  new_indication: { icon: TrendingUp,  color: "text-primary",     bg: "bg-primary/10"     },
+  status_change:  { icon: TrendingUp,  color: "text-amber-400",   bg: "bg-amber-400/10"   },
+  commission:     { icon: CheckCheck,  color: "text-emerald-400", bg: "bg-emerald-400/10" },
+  info:           { icon: Info,        color: "text-blue-400",    bg: "bg-blue-400/10"    },
 };
 
 function NotifIcon({ type }: { type: AppNotification["type"] }) {
@@ -26,33 +26,26 @@ function NotifIcon({ type }: { type: AppNotification["type"] }) {
 }
 
 export function NotificationPanel() {
-  const navigate = useNavigate();
-  const [open, setOpen] = useState(false);
-
-  const { data: notifications = [], isLoading } = useNotifications();
+  const navigate  = useNavigate();
   const markRead    = useMarkNotificationRead();
   const markAllRead = useMarkAllRead();
+  const { data: notifications = [], isLoading } = useNotifications();
 
-  const unread = notifications.filter((n) => !n.read);
+  const unread    = notifications.filter((n) => !n.read);
   const hasUnread = unread.length > 0;
 
   const handleMarkAll = () => {
     markAllRead.mutate(notifications.map((n) => n.id));
   };
 
-  const handleClickNotif = (n: AppNotification) => {
-    // Marca como lida
+  // onSelect dispara ANTES do Radix fechar o dropdown — sem race condition
+  const handleSelect = (n: AppNotification) => {
     if (!n.read) markRead.mutate(n.id);
-
-    // Fecha o dropdown e navega
-    if (n.link) {
-      setOpen(false);
-      navigate(n.link);
-    }
+    if (n.link) navigate(n.link);
   };
 
   return (
-    <DropdownMenu open={open} onOpenChange={setOpen}>
+    <DropdownMenu>
       <DropdownMenuTrigger asChild>
         <Button
           variant="ghost"
@@ -67,11 +60,7 @@ export function NotificationPanel() {
         </Button>
       </DropdownMenuTrigger>
 
-      <DropdownMenuContent
-        align="end"
-        className="w-80 p-0 dark"
-        sideOffset={8}
-      >
+      <DropdownMenuContent align="end" className="w-80 p-0 dark" sideOffset={8}>
         {/* Cabeçalho */}
         <div className="flex items-center justify-between px-4 py-3 border-b border-border">
           <div className="flex items-center gap-2">
@@ -110,16 +99,20 @@ export function NotificationPanel() {
             </div>
           ) : (
             notifications.map((n) => (
-              <div
+              // DropdownMenuPrimitive.Item usa onSelect — dispara antes do fechamento
+              <DropdownMenuPrimitive.Item
                 key={n.id}
-                onClick={() => handleClickNotif(n)}
-                className={`
-                  group flex items-start gap-3 px-4 py-3
-                  border-b border-border last:border-0
-                  transition-colors
-                  ${n.link ? "cursor-pointer hover:bg-muted/50" : "cursor-default hover:bg-muted/20"}
-                  ${!n.read ? "bg-primary/5" : ""}
-                `}
+                onSelect={() => handleSelect(n)}
+                className={[
+                  "group flex items-start gap-3 px-4 py-3",
+                  "border-b border-border last:border-0",
+                  "outline-none select-none",
+                  "transition-colors",
+                  n.link
+                    ? "cursor-pointer hover:bg-muted/50 focus:bg-muted/50"
+                    : "cursor-default hover:bg-muted/20 focus:bg-muted/20",
+                  !n.read ? "bg-primary/5" : "",
+                ].join(" ")}
               >
                 <NotifIcon type={n.type} />
                 <div className="flex-1 min-w-0">
@@ -131,7 +124,6 @@ export function NotificationPanel() {
                       {!n.read && (
                         <span className="w-1.5 h-1.5 bg-primary rounded-full mt-1" />
                       )}
-                      {/* Seta de navegação — aparece no hover se tiver link */}
                       {n.link && (
                         <ArrowRight
                           size={11}
@@ -147,7 +139,7 @@ export function NotificationPanel() {
                     {formatDate(n.createdAt)}
                   </p>
                 </div>
-              </div>
+              </DropdownMenuPrimitive.Item>
             ))
           )}
         </div>
