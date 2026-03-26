@@ -4,7 +4,8 @@ import { IndicationList } from "@/components/IndicationList";
 import { useIndications, useUpdateIndicationStatus } from "@/hooks/useIndications";
 import type { IndicationStatus } from "@/lib/index";
 import { useToast } from "@/hooks/use-toast";
-import { Loader2 } from "lucide-react";
+import { Loader2, FileText } from "lucide-react";
+import { PageHeader } from "@/components/PageHeader";
 
 export default function AdminIndications() {
   const { data: indications = [], isLoading } = useIndications();
@@ -33,13 +34,12 @@ export default function AdminIndications() {
 
   return (
     <Layout>
-      <div className="space-y-4">
-        <div>
-          <h1 className="text-xl font-bold text-foreground">Todas as Indicações</h1>
-          <p className="text-sm text-muted-foreground">
-            Gerencie e atualize o status de todas as indicações
-          </p>
-        </div>
+      <div className="space-y-7">
+        <PageHeader
+          title="Todas as Indicações"
+          subtitle="Gerencie e atualize o status de cada indicação"
+          icon={FileText}
+        />
         <IndicationList
           indications={indications}
           showAffiliate

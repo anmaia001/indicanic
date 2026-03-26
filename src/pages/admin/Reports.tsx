@@ -1,3 +1,4 @@
+import { PageHeader } from "@/components/PageHeader";
 import { useState } from "react";
 import {
   Download, BarChart3, TrendingUp, DollarSign, Users, FileSpreadsheet, Filter, Loader2,
@@ -101,21 +102,15 @@ export default function AdminReports() {
   return (
     <>
     <Layout>
-      <div className="space-y-6">
-        <div className="flex items-center justify-between">
-          <div>
-            <h1 className="text-xl font-bold text-foreground">Relatórios</h1>
-            <p className="text-sm text-muted-foreground">Análise completa de indicações e comissões</p>
-          </div>
-          <div className="flex gap-2">
-            <Button variant="outline" size="sm" onClick={() => handleExport("indications")}>
-              <Download size={14} className="mr-1.5" /> Indicações CSV
-            </Button>
-            <Button variant="outline" size="sm" onClick={() => handleExport("commissions")}>
-              <FileSpreadsheet size={14} className="mr-1.5" /> Comissões CSV
-            </Button>
-          </div>
-        </div>
+      <div className="space-y-7">
+        <PageHeader title="Relatórios" subtitle="Análise completa de indicações e comissões" icon={BarChart3}>
+          <Button variant="outline" size="sm" onClick={() => handleExport("indications")}>
+            <Download size={14} className="mr-1.5" /> Indicações CSV
+          </Button>
+          <Button variant="outline" size="sm" onClick={() => handleExport("commissions")}>
+            <FileSpreadsheet size={14} className="mr-1.5" /> Comissões CSV
+          </Button>
+        </PageHeader>
 
         <div className="flex gap-3 flex-wrap">
           <Select value={affiliateFilter} onValueChange={setAffiliateFilter}>

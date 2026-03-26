@@ -1,3 +1,4 @@
+import { PageHeader } from "@/components/PageHeader";
 import { useState, useEffect } from "react";
 import { motion } from "framer-motion";
 import {
@@ -115,12 +116,7 @@ export default function AdminSettings() {
         animate={{ opacity: 1, y: 0 }}
         transition={{ duration: 0.3 }}
       >
-        <div>
-          <h1 className="text-xl font-bold text-foreground flex items-center gap-2">
-            <Settings size={20} className="text-primary" /> Configurações
-          </h1>
-          <p className="text-sm text-muted-foreground">Gerencie as configurações da plataforma</p>
-        </div>
+        <PageHeader title="Configurações" subtitle="Gerencie as configurações da plataforma" icon={Settings} />
 
         {/* Dados da empresa */}
         <Card className="border-border">

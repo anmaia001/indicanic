@@ -1,4 +1,4 @@
-@import url("https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&family=Exo+2:wght@600;700;800&family=JetBrains+Mono:wght@400;500&display=swap");
+@import url("https://fonts.googleapis.com/css2?family=Inter:ital,opsz,wght@0,14..32,300;0,14..32,400;0,14..32,500;0,14..32,600;0,14..32,700;1,14..32,400&family=Plus+Jakarta+Sans:wght@500;600;700;800&family=JetBrains+Mono:wght@400;500&display=swap");
 @import "tailwindcss";
 @import "tw-animate-css";
 
@@ -38,8 +38,9 @@
 
 :root {
   /* Typography */
-  --font-sans: Inter, system-ui, -apple-system, sans-serif;
-  --font-mono: JetBrains Mono, Consolas, monospace;
+  --font-sans: "Inter", system-ui, -apple-system, sans-serif;
+  --font-display: "Plus Jakarta Sans", "Inter", sans-serif;
+  --font-mono: "JetBrains Mono", Consolas, monospace;
   
   /* Radius */
   --radius: 0.5rem;
@@ -175,13 +176,11 @@
 @layer base {
   * {
     @apply border-border outline-ring/50;
-    /* Garante que nenhum elemento quebre o container pai */
     min-width: 0;
   }
 
   html {
     @apply scroll-smooth antialiased;
-    /* Impede scroll horizontal na página toda */
     overflow-x: hidden;
   }
 
@@ -189,10 +188,19 @@
     @apply bg-background text-foreground font-sans min-h-screen;
     font-feature-settings: "cv02", "cv03", "cv04", "cv11";
     overflow-x: hidden;
+    letter-spacing: -0.01em;
   }
 
-  h1, h2, h3, h4, h5, h6 {
+  h1, h2, h3 {
+    font-family: var(--font-display);
+    @apply font-bold tracking-tight;
+    letter-spacing: -0.03em;
+  }
+
+  h4, h5, h6 {
+    font-family: var(--font-display);
     @apply font-semibold tracking-tight;
+    letter-spacing: -0.02em;
   }
 
   code, pre {
@@ -204,13 +212,14 @@
   }
 
   ::-webkit-scrollbar {
-    width: 6px;
-    height: 6px;
+    width: 5px;
+    height: 5px;
   }
   ::-webkit-scrollbar-track {
     @apply bg-transparent;
   }
   ::-webkit-scrollbar-thumb {
-    @apply bg-muted-foreground/20 rounded-full hover:bg-muted-foreground/40;
+    @apply bg-muted-foreground/15 rounded-full hover:bg-muted-foreground/30;
+    transition: background 0.2s;
   }
 }

@@ -1,3 +1,4 @@
+import { PageHeader } from "@/components/PageHeader";
 import { useState } from "react";
 import { motion } from "framer-motion";
 import {
@@ -76,18 +77,16 @@ export default function AffiliateCommissions() {
 
   return (
     <Layout>
-      <div className="space-y-6">
-        <div className="flex items-center justify-between">
-          <div>
-            <h1 className="text-xl font-bold text-foreground">Minhas Comissões</h1>
-            <p className="text-sm text-muted-foreground">
-              Taxa atual: <span className="text-primary font-medium">{user?.commissionRate}%</span>
-            </p>
-          </div>
+      <div className="space-y-7">
+        <PageHeader
+          title="Minhas Comissões"
+          subtitle={`Taxa atual: ${user?.commissionRate}% por contrato fechado`}
+          icon={DollarSign}
+        >
           <Button variant="outline" size="sm" onClick={handleExport} disabled={commissions.length === 0}>
-            <Download size={15} className="mr-1.5" /> Exportar CSV
+            <Download size={14} className="mr-1.5" /> Exportar CSV
           </Button>
-        </div>
+        </PageHeader>
 
         {/* Stats */}
         <div className="grid grid-cols-3 gap-3">

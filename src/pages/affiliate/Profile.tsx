@@ -1,3 +1,4 @@
+import { PageHeader } from "@/components/PageHeader";
 import { useState } from "react";
 import { motion } from "framer-motion";
 import {
@@ -94,8 +95,8 @@ export default function AffiliateProfile() {
 
   return (
     <Layout>
-      <div className="max-w-2xl space-y-6">
-        <h1 className="text-xl font-bold text-foreground">Meu Perfil</h1>
+      <div className="max-w-2xl space-y-7">
+        <PageHeader title="Meu Perfil" subtitle="Gerencie suas informações pessoais e senha" icon={User} />
 
         {/* Profile Card */}
         <Card className="border-border">

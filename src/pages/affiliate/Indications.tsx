@@ -2,7 +2,8 @@ import { Layout } from "@/components/Layout";
 import { IndicationList } from "@/components/IndicationList";
 import { useAuth } from "@/hooks/useAuth";
 import { useIndications, useCreateIndication } from "@/hooks/useIndications";
-import { Loader2 } from "lucide-react";
+import { Loader2, Users } from "lucide-react";
+import { PageHeader } from "@/components/PageHeader";
 import { useToast } from "@/hooks/use-toast";
 import type { Indication } from "@/lib/index";
 
@@ -42,12 +43,9 @@ export default function AffiliateIndications() {
 
   return (
     <Layout>
-      <div className="space-y-4">
+      <div className="space-y-7">
         <div>
-          <h1 className="text-xl font-bold text-foreground">Minhas Indicações</h1>
-          <p className="text-sm text-muted-foreground">
-            Acompanhe o status de cada indicação no pipeline
-          </p>
+          <PageHeader title="Minhas Indicações" subtitle="Acompanhe todas as suas indicações e o status de cada uma" icon={Users} />
         </div>
         <IndicationList
           indications={indications}

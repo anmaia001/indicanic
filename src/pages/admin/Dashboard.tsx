@@ -1,14 +1,8 @@
 import { motion } from "framer-motion";
-import {
-  Users,
-  TrendingUp,
-  DollarSign,
-  Target,
-  Loader2,
-  AlertCircle,
-} from "lucide-react";
+import { Users, TrendingUp, DollarSign, Target, Loader2, AlertCircle, LayoutDashboard } from "lucide-react";
 import { Layout } from "@/components/Layout";
 import { StatCard, PipelineStep, StatusBadge } from "@/components/Stats";
+import { PageHeader, SectionLabel } from "@/components/PageHeader";
 import { IndicationsChart, CommissionsChart, ServiceTypePieChart } from "@/components/Charts";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { useAffiliates } from "@/hooks/useAffiliates";
@@ -56,105 +50,126 @@ export default function AdminDashboard() {
 
   return (
     <Layout>
-      <div className="space-y-6">
-        <div>
-          <h1 className="text-xl font-bold text-foreground">Dashboard Administrativo</h1>
-          <p className="text-sm text-muted-foreground">Visão geral da plataforma em tempo real</p>
-        </div>
+      <div className="space-y-7">
+
+        <PageHeader
+          title="Dashboard"
+          subtitle="Visão geral da plataforma em tempo real"
+          icon={LayoutDashboard}
+        />
 
         {/* KPIs */}
-        <div className="grid grid-cols-2 lg:grid-cols-4 gap-3">
-          <StatCard title="Total Indicações" value={kpis.totalIndications} icon={Target} color="primary" delay={0} />
-          <StatCard title="Receita Total" value={kpis.totalRevenue} icon={TrendingUp} color="success" isCurrency delay={0.05} />
-          <StatCard title="Comissões a Pagar" value={kpis.pendingCommissions} icon={DollarSign} color="warning" isCurrency delay={0.1} />
-          <StatCard title="Afiliados Ativos" value={kpis.activeAffiliates} icon={Users} color="violet" delay={0.15} />
+        <div>
+          <SectionLabel label="Indicadores" />
+          <div className="grid grid-cols-2 lg:grid-cols-4 gap-3">
+            <StatCard title="Total Indicações"   value={kpis.totalIndications}    icon={Target}    color="primary" delay={0}    />
+            <StatCard title="Receita Total"       value={kpis.totalRevenue}         icon={TrendingUp} color="success" isCurrency delay={0.05} />
+            <StatCard title="Comissões a Pagar"   value={kpis.pendingCommissions}   icon={DollarSign} color="warning" isCurrency delay={0.1}  />
+            <StatCard title="Afiliados Ativos"    value={kpis.activeAffiliates}     icon={Users}      color="violet"  delay={0.15} />
+          </div>
         </div>
 
-        {/* Pipeline overview */}
-        <Card className="border-border overflow-hidden">
-          <CardHeader className="pb-3">
-            <CardTitle className="text-sm font-medium">Pipeline Geral</CardTitle>
-          </CardHeader>
-          <CardContent>
-            <div className="flex items-center gap-1 flex-wrap overflow-x-auto pb-1">
-              <PipelineStep step={1} label="Indicação" count={kpis.indication} color="text-muted-foreground" bg="bg-muted/50" />
-              <PipelineStep step={2} label="Orçamento" count={kpis.budget} color="text-amber-400" bg="bg-amber-400/10" />
-              <PipelineStep step={3} label="Instalação" count={kpis.installation} color="text-primary" bg="bg-primary/10" />
-              <PipelineStep step={4} label="Mensalidade" count={kpis.active} color="text-emerald-400" bg="bg-emerald-400/10" />
-              <PipelineStep step={5} label="Com. Paga" count={kpis.paid} color="text-violet-400" bg="bg-violet-400/10" isLast />
-            </div>
-            {kpis.cancelled > 0 && (
-              <p className="text-xs text-muted-foreground mt-3 flex items-center gap-1">
-                <AlertCircle size={12} /> {kpis.cancelled} indicação(ões) cancelada(s)
-              </p>
-            )}
-          </CardContent>
-        </Card>
+        {/* Pipeline */}
+        <div>
+          <SectionLabel label="Pipeline Geral" />
+          <Card className="border-border/60 overflow-hidden bg-card/80">
+            <CardContent className="p-5">
+              <div className="flex items-center gap-1.5 flex-wrap overflow-x-auto pb-1">
+                <PipelineStep step={1} label="Indicação"   count={kpis.indication}   color="text-muted-foreground" bg="bg-muted/40"         />
+                <PipelineStep step={2} label="Orçamento"   count={kpis.budget}        color="text-amber-400"        bg="bg-amber-400/10"     />
+                <PipelineStep step={3} label="Instalação"  count={kpis.installation}  color="text-primary"          bg="bg-primary/10"       />
+                <PipelineStep step={4} label="Mensalidade" count={kpis.active}        color="text-emerald-400"      bg="bg-emerald-400/10"   />
+                <PipelineStep step={5} label="Com. Paga"   count={kpis.paid}          color="text-violet-400"       bg="bg-violet-400/10" isLast />
+              </div>
+              {kpis.cancelled > 0 && (
+                <p className="text-xs text-muted-foreground/70 mt-3 flex items-center gap-1.5">
+                  <AlertCircle size={12} className="shrink-0" />
+                  {kpis.cancelled} indicação(ões) cancelada(s)
+                </p>
+              )}
+            </CardContent>
+          </Card>
+        </div>
 
         {/* Charts */}
-        <div className="grid lg:grid-cols-3 gap-4">
-          <div className="lg:col-span-2 space-y-4">
-            <IndicationsChart indications={indications} />
-            <CommissionsChart commissions={commissions} />
+        <div>
+          <SectionLabel label="Evolução" />
+          <div className="grid lg:grid-cols-3 gap-4">
+            <div className="lg:col-span-2 space-y-4">
+              <IndicationsChart indications={indications} />
+              <CommissionsChart commissions={commissions} />
+            </div>
+            <ServiceTypePieChart indications={indications} />
           </div>
-          <ServiceTypePieChart indications={indications} />
         </div>
 
-        {/* Top affiliates + Recent indications */}
-        <div className="grid lg:grid-cols-2 gap-4">
-          <Card className="border-border overflow-hidden">
-            <CardHeader className="pb-3">
-              <CardTitle className="text-sm font-medium">Top Afiliados</CardTitle>
-            </CardHeader>
-            <CardContent>
-              {topAffiliates.length === 0 ? (
-                <p className="text-sm text-muted-foreground text-center py-6">Nenhum afiliado cadastrado</p>
-              ) : (
-                <div className="space-y-3">
-                  {topAffiliates.map((aff, idx) => (
-                    <div key={aff.id} className="flex items-center gap-3">
-                      <span className="text-sm font-bold text-muted-foreground w-4 shrink-0">{idx + 1}</span>
-                      <div className="flex-1 min-w-0">
-                        <p className="text-sm font-medium text-foreground truncate">{aff.name}</p>
-                        <p className="text-xs text-muted-foreground">{aff.totalIndications} indicações</p>
-                      </div>
-                      <span className="text-sm font-bold text-emerald-400 shrink-0 whitespace-nowrap">
-                        {formatCurrency(aff.totalCommissions)}
-                      </span>
-                    </div>
-                  ))}
-                </div>
-              )}
-            </CardContent>
-          </Card>
+        {/* Bottom tables */}
+        <div>
+          <SectionLabel label="Destaque" />
+          <div className="grid lg:grid-cols-2 gap-4">
 
-          <Card className="border-border overflow-hidden">
-            <CardHeader className="pb-3">
-              <CardTitle className="text-sm font-medium">Indicações Recentes</CardTitle>
-            </CardHeader>
-            <CardContent>
-              {recentIndications.length === 0 ? (
-                <p className="text-sm text-muted-foreground text-center py-6">Nenhuma indicação</p>
-              ) : (
-                <div className="space-y-3">
-                  {recentIndications.map((ind) => (
-                    <div key={ind.id} className="flex items-center justify-between gap-2 py-1.5 border-b border-border/40 last:border-0">
-                      <div className="min-w-0 flex-1">
-                        <p className="text-sm font-medium text-foreground truncate">{ind.clientName}</p>
-                        <p className="text-xs text-muted-foreground truncate">
-                          {ind.affiliateName} · {SERVICE_LABELS[ind.serviceType]}
-                        </p>
+            {/* Top affiliates */}
+            <Card className="border-border/60 overflow-hidden bg-card/80">
+              <CardHeader className="pb-2 pt-5 px-5">
+                <CardTitle className="text-sm font-semibold text-foreground flex items-center gap-2">
+                  <span className="w-1.5 h-1.5 rounded-full bg-primary" />
+                  Top Afiliados
+                </CardTitle>
+              </CardHeader>
+              <CardContent className="px-5 pb-5">
+                {topAffiliates.length === 0 ? (
+                  <p className="text-sm text-muted-foreground text-center py-8">Nenhum afiliado cadastrado</p>
+                ) : (
+                  <div className="space-y-3 mt-1">
+                    {topAffiliates.map((aff, idx) => (
+                      <div key={aff.id} className="flex items-center gap-3 py-1">
+                        <span className="text-xs font-bold text-muted-foreground/50 w-4 shrink-0 text-center">{idx + 1}</span>
+                        <div className="flex-1 min-w-0">
+                          <p className="text-sm font-semibold text-foreground truncate">{aff.name}</p>
+                          <p className="text-xs text-muted-foreground">{aff.totalIndications} indicações</p>
+                        </div>
+                        <span className="text-sm font-bold text-emerald-400 shrink-0 whitespace-nowrap">
+                          {formatCurrency(aff.totalCommissions)}
+                        </span>
                       </div>
-                      <div className="shrink-0">
-                        <StatusBadge status={ind.status} />
+                    ))}
+                  </div>
+                )}
+              </CardContent>
+            </Card>
+
+            {/* Recent indications */}
+            <Card className="border-border/60 overflow-hidden bg-card/80">
+              <CardHeader className="pb-2 pt-5 px-5">
+                <CardTitle className="text-sm font-semibold text-foreground flex items-center gap-2">
+                  <span className="w-1.5 h-1.5 rounded-full bg-primary" />
+                  Indicações Recentes
+                </CardTitle>
+              </CardHeader>
+              <CardContent className="px-5 pb-5">
+                {recentIndications.length === 0 ? (
+                  <p className="text-sm text-muted-foreground text-center py-8">Nenhuma indicação</p>
+                ) : (
+                  <div className="mt-1">
+                    {recentIndications.map((ind, i) => (
+                      <div key={ind.id} className={`flex items-center gap-3 py-2.5 ${i < recentIndications.length - 1 ? "border-b border-border/40" : ""}`}>
+                        <div className="min-w-0 flex-1">
+                          <p className="text-sm font-semibold text-foreground truncate">{ind.clientName}</p>
+                          <p className="text-xs text-muted-foreground truncate">
+                            {ind.affiliateName} · {SERVICE_LABELS[ind.serviceType]} · {formatDate(ind.createdAt)}
+                          </p>
+                        </div>
+                        <div className="shrink-0"><StatusBadge status={ind.status} /></div>
                       </div>
-                    </div>
-                  ))}
-                </div>
-              )}
-            </CardContent>
-          </Card>
+                    ))}
+                  </div>
+                )}
+              </CardContent>
+            </Card>
+
+          </div>
         </div>
+
       </div>
     </Layout>
   );
