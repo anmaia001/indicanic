@@ -84,16 +84,26 @@ export default function AdminAffiliates() {
     setAddError("");
     try {
       await createAffiliate.mutateAsync(newAffiliate);
+      const nome = newAffiliate.name;
       setShowAddModal(false);
       setAddError("");
       setShowPassword(false);
       setCopied(false);
       setNewAffiliate({ name: "", email: "", phone: "", commissionRate: 10, temporaryPassword: "" });
-      toast({ title: "Afiliado cadastrado!", description: `${newAffiliate.name} recebeu acesso por e-mail.` });
+      toast({ title: "Afiliado cadastrado!", description: `${nome} já pode acessar a plataforma.` });
     } catch (err: unknown) {
       const msg = err instanceof Error ? err.message : String(err);
       console.error("[CreateAffiliate] erro:", msg);
-      setAddError(msg || "Erro desconhecido. Tente novamente.");
+      // Mensagens de erro mais amigáveis
+      if (msg.includes("already registered") || msg.includes("already been registered") || msg.includes("email")) {
+        setAddError("Este e-mail já está cadastrado. Use um e-mail diferente.");
+      } else if (msg.includes("Sessão expirada") || msg.includes("session")) {
+        setAddError("Sua sessão expirou. Recarregue a página e tente novamente.");
+      } else if (msg.includes("Failed to fetch") || msg.includes("NetworkError") || msg.includes("network")) {
+        setAddError("Sem conexão com o servidor. Verifique sua internet e tente novamente.");
+      } else {
+        setAddError(msg || "Erro ao cadastrar. Tente novamente.");
+      }
     }
   };
 
@@ -282,8 +292,10 @@ export default function AdminAffiliates() {
           <DialogFooter>
             <Button variant="outline" onClick={() => setShowAddModal(false)}>Cancelar</Button>
             <Button onClick={handleAdd} disabled={!newAffiliate.name || !newAffiliate.email || !newAffiliate.temporaryPassword || createAffiliate.isPending}>
-              {createAffiliate.isPending ? <Loader2 size={14} className="animate-spin mr-1.5" /> : null}
-              Cadastrar
+              {createAffiliate.isPending
+                ? <><Loader2 size={14} className="animate-spin mr-1.5" /> Cadastrando...</>
+                : "Cadastrar"
+              }
             </Button>
           </DialogFooter>
         </DialogContent>

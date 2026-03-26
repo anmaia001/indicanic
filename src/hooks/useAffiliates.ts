@@ -114,41 +114,69 @@ export function useCreateAffiliate() {
       commissionRate: number;
       temporaryPassword: string;
     }) => {
-      // Buscar token da sessão atual (admin)
-      const { data: { session } } = await supabase.auth.getSession();
-      if (!session?.access_token) throw new Error("Sem sessão ativa — faça login novamente");
-
-      // Chamar Edge Function (verify_jwt=false, auth manual dentro da função)
-      const response = await fetch(
-        `${import.meta.env.VITE_SUPABASE_URL}/functions/v1/create-affiliate`,
-        {
-          method: "POST",
-          headers: {
-            "Content-Type": "application/json",
-            "Authorization": `Bearer ${session.access_token}`,
-            "apikey": import.meta.env.VITE_SUPABASE_ANON_KEY,
-          },
-          body: JSON.stringify({
-            name: input.name,
-            email: input.email,
-            phone: input.phone ?? null,
-            commissionRate: input.commissionRate,
-            temporaryPassword: input.temporaryPassword,
-          }),
-        }
-      );
-
-      const data = await response.json();
-      console.log("[create-affiliate] status:", response.status, "data:", data);
-
-      if (!response.ok) {
-        throw new Error(data?.error ?? `Erro HTTP ${response.status}`);
+      // 1. Tenta obter sessão ativa; se expirada, força refresh
+      let { data: { session } } = await supabase.auth.getSession();
+      if (!session?.access_token) {
+        const { data: refreshed } = await supabase.auth.refreshSession();
+        session = refreshed.session;
+      }
+      if (!session?.access_token) {
+        throw new Error("Sessão expirada — faça login novamente");
       }
 
-      return data;
+      const supabaseUrl = import.meta.env.VITE_SUPABASE_URL;
+      const supabaseAnonKey = import.meta.env.VITE_SUPABASE_ANON_KEY;
+
+      // 2. Tenta até 3 vezes com backoff exponencial
+      let lastError: Error | null = null;
+      for (let attempt = 0; attempt < 3; attempt++) {
+        if (attempt > 0) {
+          await new Promise((r) => setTimeout(r, 800 * attempt));
+        }
+        try {
+          const response = await fetch(
+            `${supabaseUrl}/functions/v1/create-affiliate`,
+            {
+              method: "POST",
+              headers: {
+                "Content-Type": "application/json",
+                "Authorization": `Bearer ${session.access_token}`,
+                "apikey": supabaseAnonKey,
+              },
+              body: JSON.stringify({
+                name: input.name,
+                email: input.email,
+                phone: input.phone ?? null,
+                commissionRate: input.commissionRate,
+                temporaryPassword: input.temporaryPassword,
+              }),
+            }
+          );
+
+          const data = await response.json();
+          console.log(`[create-affiliate] tentativa ${attempt + 1}, status:`, response.status, data);
+
+          if (!response.ok) {
+            // Erro de negócio (ex: email duplicado) — não tenta de novo
+            throw new Error(data?.error ?? `Erro HTTP ${response.status}`);
+          }
+
+          return data;
+        } catch (err) {
+          lastError = err instanceof Error ? err : new Error(String(err));
+          // Só retentar em erros de rede/timeout, não de negócio
+          const isNetworkError = !(err instanceof Error && /HTTP \d{3}/.test(err.message));
+          if (!isNetworkError || attempt === 2) break;
+          console.warn(`[create-affiliate] tentativa ${attempt + 1} falhou, retentando...`, lastError.message);
+        }
+      }
+
+      throw lastError ?? new Error("Erro desconhecido ao cadastrar afiliado");
     },
     onSuccess: () => {
+      // Invalida e força refetch imediato
       queryClient.invalidateQueries({ queryKey: ["affiliates"] });
+      queryClient.refetchQueries({ queryKey: ["affiliates"] });
     },
   });
 }
