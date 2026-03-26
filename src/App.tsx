@@ -2,10 +2,11 @@ import { Toaster } from "@/components/ui/toaster";
 import { Toaster as Sonner } from "@/components/ui/sonner";
 import { TooltipProvider } from "@/components/ui/tooltip";
 import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
-import { HashRouter, Routes, Route, Navigate } from "react-router-dom";
+import { HashRouter, Routes, Route, Navigate, useNavigate } from "react-router-dom";
 import { useEffect } from "react";
 import { useAuth } from "@/hooks/useAuth";
 import { ROUTE_PATHS } from "@/lib/index";
+import { supabase } from "@/integrations/supabase/client";
 
 // Pages
 import LoginPage from "./pages/login/Index";
@@ -43,14 +44,26 @@ function HomeRedirect() {
 
 function AppRoutes() {
   const { initialize } = useAuth();
+  const navigate = useNavigate();
 
   useEffect(() => {
     initialize();
   }, []);
 
+  // Captura o evento PASSWORD_RECOVERY globalmente.
+  // Com HashRouter o token chega como /#access_token=...&type=recovery na raiz
+  // e o componente de reset nunca veria o token sem esse listener global.
+  useEffect(() => {
+    const { data: { subscription } } = supabase.auth.onAuthStateChange((event) => {
+      if (event === "PASSWORD_RECOVERY") {
+        navigate(ROUTE_PATHS.RESET_PASSWORD, { replace: true });
+      }
+    });
+    return () => subscription.unsubscribe();
+  }, [navigate]);
+
   return (
-    <HashRouter>
-      <Routes>
+    <Routes>
         <Route path={ROUTE_PATHS.HOME} element={<HomeRedirect />} />
         <Route path={ROUTE_PATHS.LOGIN} element={<LoginPage />} />
         <Route path={ROUTE_PATHS.RESET_PASSWORD} element={<ResetPasswordPage />} />
@@ -70,7 +83,6 @@ function AppRoutes() {
 
         <Route path="*" element={<NotFound />} />
       </Routes>
-    </HashRouter>
   );
 }
 
@@ -79,7 +91,9 @@ const App = () => (
     <TooltipProvider>
       <Toaster />
       <Sonner />
-      <AppRoutes />
+      <HashRouter>
+        <AppRoutes />
+      </HashRouter>
     </TooltipProvider>
   </QueryClientProvider>
 );

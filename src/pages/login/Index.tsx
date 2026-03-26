@@ -47,8 +47,10 @@ export default function LoginPage() {
     setForgotStatus("sending");
     setForgotError("");
 
-    // redirectTo aponta para a página de redefinição no app
-    const redirectTo = `${window.location.origin}${window.location.pathname}#${ROUTE_PATHS.RESET_PASSWORD}`;
+    // Usa VITE_SITE_URL em produção; em dev cai no localhost mas o evento
+    // PASSWORD_RECOVERY no App.tsx redireciona corretamente de qualquer origem.
+    const siteUrl = import.meta.env.VITE_SITE_URL ?? window.location.origin;
+    const redirectTo = `${siteUrl}/#${ROUTE_PATHS.RESET_PASSWORD}`;
 
     const { error: err } = await supabase.auth.resetPasswordForEmail(forgotEmail.toLowerCase().trim(), {
       redirectTo,
