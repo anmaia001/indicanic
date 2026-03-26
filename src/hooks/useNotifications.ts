@@ -1,6 +1,7 @@
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "./useAuth";
+import { ROUTE_PATHS } from "@/lib/index";
 
 export interface AppNotification {
   id: string;
@@ -50,6 +51,7 @@ export function useNotifications() {
             type: "new_indication",
             read: isRead(id),
             createdAt: ind.created_at,
+            link: ROUTE_PATHS.ADMIN_INDICATIONS,
           });
         }
 
@@ -72,6 +74,7 @@ export function useNotifications() {
             type: "commission",
             read: isRead(id),
             createdAt: new Date().toISOString(),
+            link: ROUTE_PATHS.ADMIN_REPORTS,
           });
         }
       } else {
@@ -105,6 +108,7 @@ export function useNotifications() {
             type: "status_change",
             read: isRead(id),
             createdAt: ind.updated_at,
+            link: ROUTE_PATHS.AFFILIATE_INDICATIONS,
           });
         }
 
@@ -127,6 +131,7 @@ export function useNotifications() {
             type: "commission",
             read: isRead(id),
             createdAt: comm.updated_at,
+            link: ROUTE_PATHS.AFFILIATE_COMMISSIONS,
           });
         }
       }

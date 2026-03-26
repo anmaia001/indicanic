@@ -1,4 +1,6 @@
-import { Bell, CheckCheck, TrendingUp, AlertCircle, Info, Loader2 } from "lucide-react";
+import { useState } from "react";
+import { useNavigate } from "react-router-dom";
+import { Bell, CheckCheck, TrendingUp, AlertCircle, Info, Loader2, ArrowRight } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import {
   DropdownMenu, DropdownMenuContent, DropdownMenuTrigger,
@@ -24,6 +26,9 @@ function NotifIcon({ type }: { type: AppNotification["type"] }) {
 }
 
 export function NotificationPanel() {
+  const navigate = useNavigate();
+  const [open, setOpen] = useState(false);
+
   const { data: notifications = [], isLoading } = useNotifications();
   const markRead    = useMarkNotificationRead();
   const markAllRead = useMarkAllRead();
@@ -36,11 +41,18 @@ export function NotificationPanel() {
   };
 
   const handleClickNotif = (n: AppNotification) => {
+    // Marca como lida
     if (!n.read) markRead.mutate(n.id);
+
+    // Fecha o dropdown e navega
+    if (n.link) {
+      setOpen(false);
+      navigate(n.link);
+    }
   };
 
   return (
-    <DropdownMenu>
+    <DropdownMenu open={open} onOpenChange={setOpen}>
       <DropdownMenuTrigger asChild>
         <Button
           variant="ghost"
@@ -102,9 +114,10 @@ export function NotificationPanel() {
                 key={n.id}
                 onClick={() => handleClickNotif(n)}
                 className={`
-                  flex items-start gap-3 px-4 py-3 cursor-pointer
+                  group flex items-start gap-3 px-4 py-3
                   border-b border-border last:border-0
-                  transition-colors hover:bg-muted/40
+                  transition-colors
+                  ${n.link ? "cursor-pointer hover:bg-muted/50" : "cursor-default hover:bg-muted/20"}
                   ${!n.read ? "bg-primary/5" : ""}
                 `}
               >
@@ -114,9 +127,18 @@ export function NotificationPanel() {
                     <p className={`text-xs font-semibold leading-tight ${!n.read ? "text-foreground" : "text-muted-foreground"}`}>
                       {n.title}
                     </p>
-                    {!n.read && (
-                      <span className="shrink-0 w-1.5 h-1.5 bg-primary rounded-full mt-1" />
-                    )}
+                    <div className="flex items-center gap-1 shrink-0">
+                      {!n.read && (
+                        <span className="w-1.5 h-1.5 bg-primary rounded-full mt-1" />
+                      )}
+                      {/* Seta de navegação — aparece no hover se tiver link */}
+                      {n.link && (
+                        <ArrowRight
+                          size={11}
+                          className="text-muted-foreground/40 group-hover:text-primary group-hover:translate-x-0.5 transition-all mt-0.5 opacity-0 group-hover:opacity-100"
+                        />
+                      )}
+                    </div>
                   </div>
                   <p className="text-xs text-muted-foreground mt-0.5 line-clamp-2 leading-relaxed">
                     {n.message}
