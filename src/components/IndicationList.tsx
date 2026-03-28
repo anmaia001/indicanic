@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { motion } from "framer-motion";
 import {
   Search,
@@ -14,6 +14,9 @@ import {
   Phone,
   Mail,
   Eye,
+  Pencil,
+  Save,
+  X,
 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -46,6 +49,7 @@ import {
   formatPhone,
   calculateCommission,
 } from "@/lib/index";
+import { useUpdateIndicationValues } from "@/hooks/useIndications";
 import { useToast } from "@/hooks/use-toast";
 
 const STEP_ICONS: Record<IndicationStatus, React.ReactNode> = {
@@ -328,8 +332,55 @@ export function IndicationDetailModal({
   isAdmin?: boolean;
   onStatusChange?: (id: string, status: IndicationStatus) => void;
 }) {
+  const { toast } = useToast();
+  const updateValues = useUpdateIndicationValues();
+
+  // Estado de edição financeira
+  const [editing, setEditing] = useState(false);
+  const [contractValue, setContractValue] = useState("");
+  const [monthlyFee, setMonthlyFee]       = useState("");
+  const [adminNotes, setAdminNotes]       = useState("");
+
+  // Pré-preenche ao abrir/trocar indicação
+  useEffect(() => {
+    if (indication) {
+      setContractValue(indication.contractValue?.toString() ?? "");
+      setMonthlyFee(indication.monthlyFee?.toString() ?? "");
+      setAdminNotes(indication.adminNotes ?? "");
+      setEditing(false);
+    }
+  }, [indication?.id]);
+
   if (!indication) return null;
-  const config = STATUS_CONFIG[indication.status];
+
+  // Comissão calculada em tempo real com o valor digitado
+  const parsedContract = parseFloat(contractValue) || 0;
+  const liveCommission = parsedContract > 0
+    ? Math.round(parsedContract * indication.commissionRate) / 100
+    : 0;
+
+  const handleSave = async () => {
+    try {
+      await updateValues.mutateAsync({
+        id: indication.id,
+        contractValue: contractValue ? parseFloat(contractValue) : null,
+        monthlyFee:    monthlyFee    ? parseFloat(monthlyFee)    : null,
+        commissionRate: indication.commissionRate,
+        adminNotes,
+      });
+      toast({ title: "Valores atualizados!", description: `Comissão recalculada para ${indication.commissionRate}% do contrato.` });
+      setEditing(false);
+    } catch {
+      toast({ title: "Erro ao salvar", description: "Tente novamente.", variant: "destructive" });
+    }
+  };
+
+  const handleCancel = () => {
+    setContractValue(indication.contractValue?.toString() ?? "");
+    setMonthlyFee(indication.monthlyFee?.toString() ?? "");
+    setAdminNotes(indication.adminNotes ?? "");
+    setEditing(false);
+  };
 
   return (
     <Dialog open={open} onOpenChange={onClose}>
@@ -400,33 +451,131 @@ export function IndicationDetailModal({
             </div>
           </div>
 
-          {/* Financial */}
-          {(indication.contractValue || indication.monthlyFee || indication.commissionValue) && (
-            <div className="grid grid-cols-3 gap-2">
-              {indication.contractValue && (
-                <div className="bg-muted/50 rounded-lg p-3 text-center">
-                  <p className="text-xs text-muted-foreground">Contrato</p>
-                  <p className="font-bold text-primary text-sm">{formatCurrency(indication.contractValue)}</p>
-                </div>
+          {/* ── Painel financeiro (admin pode editar) ── */}
+          <div className="border border-border rounded-xl overflow-hidden">
+            {/* Header do painel */}
+            <div className="flex items-center justify-between px-3.5 py-2.5 bg-muted/30 border-b border-border">
+              <span className="text-xs font-semibold text-muted-foreground uppercase tracking-wider flex items-center gap-1.5">
+                <DollarSign size={12} className="text-primary" /> Valores Financeiros
+              </span>
+              {isAdmin && !editing && (
+                <button
+                  onClick={() => setEditing(true)}
+                  className="flex items-center gap-1 text-xs text-primary hover:text-primary/80 transition-colors"
+                >
+                  <Pencil size={11} /> Editar
+                </button>
               )}
-              {indication.monthlyFee && (
-                <div className="bg-muted/50 rounded-lg p-3 text-center">
-                  <p className="text-xs text-muted-foreground">Mensalidade</p>
-                  <p className="font-bold text-amber-400 text-sm">{formatCurrency(indication.monthlyFee)}</p>
-                </div>
-              )}
-              {indication.commissionValue && (
-                <div className="bg-emerald-400/10 rounded-lg p-3 text-center border border-emerald-400/20">
-                  <p className="text-xs text-muted-foreground">Comissão</p>
-                  <p className="font-bold text-emerald-400 text-sm">{formatCurrency(indication.commissionValue)}</p>
+              {isAdmin && editing && (
+                <div className="flex items-center gap-2">
+                  <button onClick={handleCancel} className="flex items-center gap-1 text-xs text-muted-foreground hover:text-foreground transition-colors">
+                    <X size={11} /> Cancelar
+                  </button>
+                  <button
+                    onClick={handleSave}
+                    disabled={updateValues.isPending}
+                    className="flex items-center gap-1 text-xs text-emerald-400 hover:text-emerald-300 transition-colors font-medium"
+                  >
+                    <Save size={11} /> {updateValues.isPending ? "Salvando..." : "Salvar"}
+                  </button>
                 </div>
               )}
             </div>
-          )}
+
+            <div className="p-3.5 space-y-3">
+              {/* Linha: Contrato + Mensalidade */}
+              <div className="grid grid-cols-2 gap-3">
+                <div className="space-y-1">
+                  <label className="text-xs text-muted-foreground">Valor do Contrato (R$)</label>
+                  {editing ? (
+                    <Input
+                      type="number"
+                      min="0"
+                      step="0.01"
+                      placeholder="0,00"
+                      value={contractValue}
+                      onChange={(e) => setContractValue(e.target.value)}
+                      className="h-9 text-sm"
+                    />
+                  ) : (
+                    <p className="font-bold text-primary text-base">
+                      {indication.contractValue ? formatCurrency(indication.contractValue) : <span className="text-muted-foreground text-sm font-normal">—</span>}
+                    </p>
+                  )}
+                </div>
+                <div className="space-y-1">
+                  <label className="text-xs text-muted-foreground">Mensalidade (R$)</label>
+                  {editing ? (
+                    <Input
+                      type="number"
+                      min="0"
+                      step="0.01"
+                      placeholder="0,00"
+                      value={monthlyFee}
+                      onChange={(e) => setMonthlyFee(e.target.value)}
+                      className="h-9 text-sm"
+                    />
+                  ) : (
+                    <p className="font-bold text-amber-400 text-base">
+                      {indication.monthlyFee ? formatCurrency(indication.monthlyFee) : <span className="text-muted-foreground text-sm font-normal">—</span>}
+                    </p>
+                  )}
+                </div>
+              </div>
+
+              {/* Comissão — calculada em tempo real no modo edição */}
+              <div className={`rounded-lg p-3 flex items-center justify-between transition-colors ${
+                editing && liveCommission > 0
+                  ? "bg-emerald-400/15 border border-emerald-400/30"
+                  : indication.commissionValue
+                  ? "bg-emerald-400/10 border border-emerald-400/20"
+                  : "bg-muted/40 border border-border"
+              }`}>
+                <div>
+                  <p className="text-xs text-muted-foreground">
+                    Comissão do afiliado <span className="text-foreground font-medium">({indication.commissionRate}%)</span>
+                  </p>
+                  {editing && liveCommission > 0 && (
+                    <p className="text-[10px] text-emerald-400/70 mt-0.5">Será salvo automaticamente</p>
+                  )}
+                </div>
+                <p className={`font-bold text-lg ${
+                  (editing ? liveCommission : indication.commissionValue)
+                    ? "text-emerald-400"
+                    : "text-muted-foreground"
+                }`}>
+                  {editing
+                    ? (liveCommission > 0 ? formatCurrency(liveCommission) : "—")
+                    : (indication.commissionValue ? formatCurrency(indication.commissionValue) : "—")
+                  }
+                </p>
+              </div>
+
+              {/* Notas do admin */}
+              {(isAdmin || indication.adminNotes) && (
+                <div className="space-y-1">
+                  <label className="text-xs text-muted-foreground">Notas internas (admin)</label>
+                  {editing ? (
+                    <Textarea
+                      placeholder="Anotações internas sobre esta indicação..."
+                      rows={2}
+                      value={adminNotes}
+                      onChange={(e) => setAdminNotes(e.target.value)}
+                      className="text-sm resize-none"
+                    />
+                  ) : (
+                    indication.adminNotes
+                      ? <p className="text-sm text-foreground bg-muted/40 rounded-lg p-3">{indication.adminNotes}</p>
+                      : <p className="text-xs text-muted-foreground/50 italic">Sem notas</p>
+                  )}
+                </div>
+              )}
+            </div>
+          </div>
 
           {indication.notes && (
             <div>
-              <p className="text-xs text-muted-foreground mb-1">Observações</p>
+              <p className="text-xs text-muted-foreground mb-1">Observações do afiliado</p>
               <p className="text-sm text-foreground bg-muted/40 rounded-lg p-3">{indication.notes}</p>
             </div>
           )}
@@ -436,7 +585,7 @@ export function IndicationDetailModal({
             <div className="border-t border-border pt-3">
               <p className="text-xs text-muted-foreground mb-2">Atualizar etapa:</p>
               <div className="flex flex-wrap gap-2">
-                {PIPELINE_STEPS.filter(s => s !== indication.status).map(s => (
+                {PIPELINE_STEPS.filter(s => s !== indication.status && s !== "cancelled").map(s => (
                   <Button
                     key={s}
                     variant="outline"

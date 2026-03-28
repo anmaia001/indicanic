@@ -158,17 +158,25 @@ export function useUpdateIndicationStatus() {
       adminNotes,
       contractValue,
       monthlyFee,
+      commissionRate,
     }: {
       id: string;
       status: IndicationStatus;
       adminNotes?: string;
       contractValue?: number;
       monthlyFee?: number;
+      commissionRate?: number;
     }) => {
       const updates: Record<string, unknown> = { status };
 
       if (adminNotes !== undefined) updates.admin_notes = adminNotes;
-      if (contractValue !== undefined) updates.contract_value = contractValue;
+      if (contractValue !== undefined) {
+        updates.contract_value = contractValue;
+        // Recalcula comissão automaticamente se tiver a taxa
+        if (commissionRate !== undefined && commissionRate > 0) {
+          updates.commission_value = Math.round(contractValue * commissionRate) / 100;
+        }
+      }
       if (monthlyFee !== undefined) updates.monthly_fee = monthlyFee;
 
       // Definir datas de etapa automaticamente
@@ -234,6 +242,58 @@ export function useUpdateIndication() {
     },
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ["indications"] });
+    },
+  });
+}
+
+// ============================================================
+// MUTATION: admin edita valores financeiros sem mudar status
+// ============================================================
+
+export function useUpdateIndicationValues() {
+  const queryClient = useQueryClient();
+
+  return useMutation({
+    mutationFn: async ({
+      id,
+      contractValue,
+      monthlyFee,
+      commissionRate,
+      adminNotes,
+    }: {
+      id: string;
+      contractValue?: number | null;
+      monthlyFee?: number | null;
+      commissionRate?: number;
+      adminNotes?: string;
+    }) => {
+      const payload: Record<string, unknown> = {};
+
+      if (contractValue !== undefined) {
+        payload.contract_value = contractValue;
+        // Recalcula comissão automaticamente
+        if (commissionRate !== undefined && commissionRate > 0 && contractValue !== null) {
+          payload.commission_value = Math.round(contractValue * commissionRate) / 100;
+        } else if (contractValue === null) {
+          payload.commission_value = null;
+        }
+      }
+      if (monthlyFee !== undefined) payload.monthly_fee = monthlyFee;
+      if (adminNotes !== undefined) payload.admin_notes = adminNotes;
+
+      const { data, error } = await supabase
+        .from("indications")
+        .update(payload)
+        .eq("id", id)
+        .select()
+        .single();
+
+      if (error) throw error;
+      return data;
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ["indications"] });
+      queryClient.invalidateQueries({ queryKey: ["commissions"] });
     },
   });
 }
