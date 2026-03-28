@@ -3,8 +3,8 @@ import {
   XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer, Legend,
 } from "recharts";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
-import { formatCurrency } from "@/lib/index";
-import type { Indication, Commission } from "@/lib/index";
+import { formatCurrency, SERVICE_LABELS } from "@/lib/index";
+import type { Indication, Commission, ServiceType } from "@/lib/index";
 
 const CHART_COLORS = {
   primary: "oklch(0.68 0.21 225)",
@@ -22,13 +22,7 @@ const SERVICE_COLORS: Record<string, string> = {
   other:          "#f97316",
 };
 
-const SERVICE_LABELS: Record<string, string> = {
-  cftv:           "CFTV",
-  alarm:          "Alarme",
-  combo:          "Combo",
-  access_control: "Acesso",
-  other:          "Outros",
-};
+// SERVICE_LABELS importado de @/lib/index para manter consistência com o resto do app
 
 // Gera os últimos N meses como "Jan", "Fev", etc.
 function lastNMonths(n: number) {
@@ -184,7 +178,7 @@ export function ServiceTypePieChart({ indications }: ServiceTypePieChartProps) {
 
   const pieData = Object.entries(counts)
     .map(([type, count]) => ({
-      name: SERVICE_LABELS[type] ?? type,
+      name: SERVICE_LABELS[type as ServiceType] ?? type,
       value: total > 0 ? Math.round((count / total) * 100) : 0,
       color: SERVICE_COLORS[type] ?? "#94a3b8",
     }))
