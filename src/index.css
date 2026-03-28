@@ -191,6 +191,12 @@
     letter-spacing: -0.01em;
   }
 
+  /* Garante que o scroll do modal funcione mesmo com body travado pelo Radix */
+  [data-radix-dialog-content] {
+    overscroll-behavior: contain;
+    -webkit-overflow-scrolling: touch;
+  }
+
   h1, h2, h3 {
     font-family: var(--font-display);
     @apply font-bold tracking-tight;
